@@ -119,7 +119,7 @@ def store_entry_in_db(submission):
         return False
     except Exception as e:
         # most likely issue is not unique (submission is already logged in databaase); this is fine and intended
-        logging.error(f"Couldn't store submission in database. {e}")
+        # logging.error(f"Couldn't store submission in database. {e}")
         return False
 
 
