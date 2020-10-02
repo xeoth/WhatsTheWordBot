@@ -2,6 +2,7 @@
 
 import os
 import praw
+import praw.models
 import logging
 import sql_library as sql
 from datetime import datetime, timezone
@@ -46,7 +47,8 @@ if not reddit.read_only:
 
 
 def get_posts_with_old_timestamps(status, second_limit=86400):
-    old_timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp() - second_limit
+    old_timestamp = datetime.now().replace(
+        tzinfo=timezone.utc).timestamp() - second_limit
     # print(old_timestamp)
     results = db.custom_query(
         queries=[f"SELECT id, status FROM posts WHERE last_checked <= {int(old_timestamp)} AND status == '{status}'"])
@@ -57,7 +59,8 @@ def get_posts_with_old_timestamps(status, second_limit=86400):
 
 
 def check_status_in_db(submission_id):
-    results = db.custom_query(queries=[f"SELECT id, status FROM posts WHERE id == '{submission_id}'"])
+    results = db.custom_query(
+        queries=[f"SELECT id, status FROM posts WHERE id == '{submission_id}'"])
     if results and len(results) > 0:
         return results
     return None
@@ -131,11 +134,13 @@ def update_db_entry(submission_id, status):
                 f"UPDATE posts SET status = '{status}', last_checked = {int(time_now)} WHERE id = '{submission_id}'"],
             commit=True)
         if results and results > 0:
-            logging.info(f"Updated submission {submission_id} to '{status}' in database.")
+            logging.info(
+                f"Updated submission {submission_id} to '{status}' in database.")
             return True
         return False
     except Exception as e:
-        logging.error(f"Couldn't update submission {submission_id} in database. {e}")
+        logging.error(
+            f"Couldn't update submission {submission_id} in database. {e}")
         return False
 
 
@@ -150,7 +155,8 @@ def delete_old_entry(submission_id):
             return True
         return False
     except Exception as e:
-        logging.error(f"Couldn't delete submission {submission_id} in database. {e}")
+        logging.error(
+            f"Couldn't delete submission {submission_id} in database. {e}")
         return False
 
 
@@ -186,7 +192,8 @@ def run():
             else:
                 # only update flair if successfully added to database, to avoid out-of-sync issues
                 if not check_flair(submission=submission, flair_text=UNSOLVED_FLAIR_TEXT, flair_id=UNSOLVED_FLAIR_ID) and store_entry_in_db(submission=submission):
-                    apply_flair(submission, text=UNSOLVED_FLAIR_TEXT, flair_id=UNSOLVED_FLAIR_ID)
+                    apply_flair(submission, text=UNSOLVED_FLAIR_TEXT,
+                                flair_id=UNSOLVED_FLAIR_ID)
         # check if any new comments, update submissions accordingly
         comment_stream = subreddit.comments(limit=50)
         for comment in comment_stream:
@@ -199,7 +206,8 @@ def run():
                     try:
                         # only update flair if successfully updated in database, to avoid out-of-sync issues
                         if update_db_entry(submission_id=comment.submission.id, status=SOLVED_DB):
-                            apply_flair(submission=comment.submission, text=SOLVED_FLAIR_TEXT, flair_id=SOLVED_FLAIR_ID)
+                            apply_flair(
+                                submission=comment.submission, text=SOLVED_FLAIR_TEXT, flair_id=SOLVED_FLAIR_ID)
                     except Exception as e:
                         logging.error(
                             f"Couldn't flair submission {comment.submission.id} as 'solved' following OP's new comment.")
@@ -216,13 +224,15 @@ def run():
             # otherwise, if new non-OP comment on an "unknown", "contested" or "unsolved" submission, flair submission as "contested"
             else:
                 try:
-                    submission_entry_in_db = check_status_in_db(submission_id=comment.submission.id)
+                    submission_entry_in_db = check_status_in_db(
+                        submission_id=comment.submission.id)
                     if submission_entry_in_db and submission_entry_in_db[0][1] in [UNKNOWN_DB, CONTESTED_DB, UNSOLVED_DB]\
                             and not (
                                 check_flair(submission=comment.submission, flair_text=UNKNOWN_FLAIR_TEXT, flair_id=UNKNOWN_FLAIR_ID) or
                                 check_flair(submission=comment.submission, flair_text=UNSOLVED_FLAIR_TEXT, flair_id=UNSOLVED_FLAIR_ID) or
-                                check_flair(submission=comment.submission, flair_text=CONTESTED_FLAIR_TEXT, flair_id=CONTESTED_FLAIR_ID)
-                            ):
+                                check_flair(
+                                    submission=comment.submission, flair_text=CONTESTED_FLAIR_TEXT, flair_id=CONTESTED_FLAIR_ID)
+                    ):
                         try:
                             # only update flair if successfully updated in database, to avoid out-of-sync issues
                             if update_db_entry(submission_id=comment.submission.id, status=CONTESTED_DB):
@@ -232,7 +242,8 @@ def run():
                             logging.error(
                                 f"Couldn't flair submission {comment.submission.id} as 'contested' following a new non-OP comment.")
                 except Exception as e:
-                    logging.error(f"Couldn't grab submmision {comment.submission.id} status from database.")
+                    logging.error(
+                        f"Couldn't grab submmision {comment.submission.id} status from database.")
         # check old "unsolved" submissions and change to "abandoned"
         old_unsolved_submissions = get_posts_with_old_timestamps(status='u',
                                                                  second_limit=SECONDS_UNTIL_ABANDONED_FROM_UNSOLVED)
@@ -246,10 +257,12 @@ def run():
                                                                             flair_text=SOLVED_FLAIR_TEXT,
                                                                             flair_id=SOLVED_FLAIR_ID):
                     if update_db_entry(submission_id=entry[0], status=SOLVED_DB):
-                        apply_flair(submission=submission, text=SOLVED_FLAIR_TEXT, flair_id=SOLVED_FLAIR_ID)
+                        apply_flair(
+                            submission=submission, text=SOLVED_FLAIR_TEXT, flair_id=SOLVED_FLAIR_ID)
                 else:
                     if update_db_entry(submission_id=entry[0], status=ABANDONDED_DB):
-                        apply_flair(submission=submission, text=ABANDONDED_FLAIR_TEXT, flair_id=ABANDONDED_FLAIR_ID)
+                        apply_flair(
+                            submission=submission, text=ABANDONDED_FLAIR_TEXT, flair_id=ABANDONDED_FLAIR_ID)
             except Exception as e:
                 logging.error(f"Couldn't check old submission {entry[0]}. {e}")
                 # if '404' in e:
@@ -267,10 +280,12 @@ def run():
                                                                             flair_text=SOLVED_FLAIR_TEXT,
                                                                             flair_id=SOLVED_FLAIR_ID):
                     if update_db_entry(submission_id=entry[0], status=SOLVED_DB):
-                        apply_flair(submission=submission, text=SOLVED_FLAIR_TEXT, flair_id=SOLVED_FLAIR_ID)
+                        apply_flair(
+                            submission=submission, text=SOLVED_FLAIR_TEXT, flair_id=SOLVED_FLAIR_ID)
                 else:
                     if update_db_entry(submission_id=entry[0], status=UNKNOWN_DB):
-                        apply_flair(submission=submission, text=UNKNOWN_FLAIR_TEXT, flair_id=UNKNOWN_FLAIR_ID)
+                        apply_flair(
+                            submission=submission, text=UNKNOWN_FLAIR_TEXT, flair_id=UNKNOWN_FLAIR_ID)
             except Exception as e:
                 logging.error(f"Couldn't check old submission {entry[0]}. {e}")
                 # if '404' in e:
