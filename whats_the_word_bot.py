@@ -120,10 +120,14 @@ def store_entry_in_db(submission):
             logging.info(f"Added submission {submission.id} to database.")
             return True
         return False
-    except Exception as e:
+    except Exception:
         # most likely issue is not unique (submission is already logged in databaase); this is fine and intended
         # logging.error(f"Couldn't store submission in database. {e}")
         return False
+
+
+def mod_overriden(submission: praw.models.Submission):
+    return True if ':overriden:' in submission.link_flair_text else False
 
 
 def update_db_entry(submission_id, status):
