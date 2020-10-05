@@ -12,7 +12,7 @@ load_dotenv()
 
 REDDIT_CLIENT_ID = os.environ.get('ID')
 REDDIT_CLIENT_SECRET = os.environ.get('SECRET')
-REDDIT_USERNAME = os.environ.get('USERNAME')
+REDDIT_USERNAME = os.environ.get('REDDIT_USERNAME')
 REDDIT_PASSWORD = os.environ.get('PASSWORD')
 SUB_TO_MONITOR = os.environ.get('SUBREDDIT')
 
@@ -34,6 +34,7 @@ SOLVED_DB = 's'
 UNKNOWN_FLAIR_TEXT = 'unknown'
 UNKNOWN_FLAIR_ID = ''
 UNKNOWN_DB = 'k'
+OVERRIDEN_DB = 'o'
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(levelname)s - %(message)s")
@@ -42,6 +43,7 @@ db = sql.SQL(sql_type='SQLite', sqlite_file='whats_the_word.db')
 
 reddit = praw.Reddit(client_id=REDDIT_CLIENT_ID, client_secret=REDDIT_CLIENT_SECRET,
                      user_agent='WhatsTheWordBot (by u/grtgbln)', username=REDDIT_USERNAME, password=REDDIT_PASSWORD)
+
 if not reddit.read_only:
     logging.info("Connected and running.")
 
@@ -127,7 +129,19 @@ def store_entry_in_db(submission):
 
 
 def mod_overriden(submission: praw.models.Submission):
-    return True if ':overriden:' in submission.link_flair_text else False
+    timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
+    if db.custom_query(f"SELECT status FROM posts WHERE id = '{submission.id}'") == 'o':
+        return True
+    elif':overriden:' in submission.link_flair_text:
+        db.custom_query(
+            f"INSERT INTO posts VALUES ('{submission.id}', 'o', '{int(timestamp)}');")
+        return True
+    else:
+        return False
+
+
+def submitter_is_mod(submission: praw.models.Submission):
+    return
 
 
 def update_db_entry(submission_id, status):
@@ -174,6 +188,7 @@ def clean_db():
 
 
 def run():
+    print(reddit.user.me())
     """
     New submission: automatically flaired "unsolved"
     If "solved" comment from OP -> "solved"
@@ -184,14 +199,20 @@ def run():
     """
     # clean_db()
     subreddit = reddit.subreddit(SUB_TO_MONITOR)
-    # comment_stream = subreddit.stream.comments(pause_after=-1)
-    # submission_stream = subreddit.stream.submissions(pause_after=-1)
+
+    # cache current subreddit mods not to look them up every time we want to check
+    sub_mods = tuple(moderator.name for moderator in subreddit.moderator())
+
     while True:
         # log new submissions to database, apply "unsolved" flair
         submission_stream = subreddit.new(
             limit=10)  # if you're getting more than 10 new submissions in two seconds, you have a problem
         for submission in submission_stream:
-            if submission is None:
+            if submission is None or submission.author is None:
+                break
+            elif submission.author.name in sub_mods:
+                break
+            elif mod_overriden(submission):
                 break
             else:
                 # only update flair if successfully added to database, to avoid out-of-sync issues
@@ -203,6 +224,10 @@ def run():
         for comment in comment_stream:
             if comment is None or not comment.author or (comment.author and comment.author.name == 'AutoModerator'):
                 break
+
+            if mod_overriden(comment.submission):
+                break
+
             # if new comment by OP
             if comment.author and comment.author.name == comment.submission.author.name:
                 # if OP's comment is "solved", flair submission as "solved"
@@ -256,6 +281,10 @@ def run():
                 # get submission object from id
                 submission = reddit.submission(id=entry[0])
                 # check comments one last time for potential solve
+
+                if mod_overriden(submission):
+                    continue
+
                 # only update flair if successfully updated in database, to avoid out-of-sync issues
                 if solved_in_comments(submission=submission) or check_flair(submission=submission,
                                                                             flair_text=SOLVED_FLAIR_TEXT,
@@ -279,6 +308,9 @@ def run():
                 # get submission object from id
                 submission = reddit.submission(id=entry[0])
                 # check comments one last time for potential solve
+                if mod_overriden(submission):
+                    break
+
                 # only update flair if successfully updated in database, to avoid out-of-sync issues
                 if solved_in_comments(submission=submission) or check_flair(submission=submission,
                                                                             flair_text=SOLVED_FLAIR_TEXT,
