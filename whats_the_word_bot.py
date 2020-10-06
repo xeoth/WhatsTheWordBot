@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import os
+from os import getenv
 import praw
 import praw.models
 import logging
@@ -11,31 +11,31 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-REDDIT_CLIENT_ID = os.environ.get('ID')
-REDDIT_CLIENT_SECRET = os.environ.get('SECRET')
-REDDIT_USERNAME = os.environ.get('REDDIT_USERNAME')
-REDDIT_PASSWORD = os.environ.get('PASSWORD')
-SUB_TO_MONITOR = os.environ.get('SUBREDDIT')
+REDDIT_CLIENT_ID = getenv('ID')
+REDDIT_CLIENT_SECRET = getenv('SECRET')
+REDDIT_USERNAME = getenv('REDDIT_USERNAME')
+REDDIT_PASSWORD = getenv('PASSWORD')
+SUB_TO_MONITOR = getenv('SUBREDDIT')
 
 SECONDS_UNTIL_ABANDONED_FROM_UNSOLVED = 86400  # 86400 = 24 hours in seconds
 SECONDS_UNTIL_UNKNOWN_FROM_CONTESTED = 172800  # 172800 = 48 hours in seconds
 
-UNSOLVED_FLAIR_TEXT = 'unsolved'
-UNSOLVED_FLAIR_ID = 'fb4b2e7e-94bd-11ea-8cfc-0efa6da03c0b'
-UNSOLVED_DB = 'u'
-ABANDONDED_FLAIR_TEXT = 'abandoned'
-ABANDONDED_FLAIR_ID = 'be422f68-9554-11ea-8bea-0e6f109dbcd3'
-ABANDONDED_DB = 'a'
-CONTESTED_FLAIR_TEXT = 'contested'
-CONTESTED_FLAIR_ID = '012e7792-94be-11ea-9937-0ed4891340c7'
-CONTESTED_DB = 'c'
-SOLVED_FLAIR_TEXT = 'solved'
-SOLVED_FLAIR_ID = 'f4b475ca-94bd-11ea-a3be-0e2ff1668461'
-SOLVED_DB = 's'
-UNKNOWN_FLAIR_TEXT = 'unknown'
-UNKNOWN_FLAIR_ID = ''
-UNKNOWN_DB = 'k'
-OVERRIDEN_DB = 'o'
+UNSOLVED_FLAIR_TEXT = getenv('UNSOLVED_FLAIR_TEXT')
+UNSOLVED_FLAIR_ID = getenv('UNSOLVED_FLAIR_ID')
+UNSOLVED_DB = getenv('UNSOLVED_DB')
+ABANDONDED_FLAIR_TEXT = getenv('ABANDONED_FLAIR_TEXT')
+ABANDONDED_FLAIR_ID = getenv('ABANDONED_FLAIR_ID')
+ABANDONDED_DB = getenv('ABANDONED_DB')
+CONTESTED_FLAIR_TEXT = getenv('CONTESTED_FLAIR_TEXT')
+CONTESTED_FLAIR_ID = getenv('CONTESTED_FLAIR_ID')
+CONTESTED_DB = getenv('CONTESTED_DB')
+SOLVED_FLAIR_TEXT = getenv('SOLVED_FLAIR_TEXT')
+SOLVED_FLAIR_ID = getenv('SOLVED_FLAIR_ID')
+SOLVED_DB = getenv('SOLVED_DB')
+UNKNOWN_FLAIR_TEXT = getenv('UNKNOWN_FLAIR_TEXT')
+UNKNOWN_FLAIR_ID = getenv('UNKNOWN_FLAIR_ID')
+UNKNOWN_DB = getenv('UNKNOWN_DB')
+OVERRIDEN_DB = getenv('OVERRIDEN_DB')
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(levelname)s - %(message)s")
