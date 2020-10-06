@@ -6,6 +6,7 @@ import praw.models
 import logging
 import sql_library as sql
 from datetime import datetime, timezone
+from typing import Tuple
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -128,22 +129,6 @@ def store_entry_in_db(submission):
         return False
 
 
-def mod_overriden(submission: praw.models.Submission):
-    timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
-    if db.custom_query(f"SELECT status FROM posts WHERE id = '{submission.id}'") == 'o':
-        return True
-    elif':overriden:' in submission.link_flair_text:
-        db.custom_query(
-            f"INSERT INTO posts VALUES ('{submission.id}', 'o', '{int(timestamp)}');")
-        return True
-    else:
-        return False
-
-
-def submitter_is_mod(submission: praw.models.Submission):
-    return
-
-
 def update_db_entry(submission_id, status):
     try:
         time_now = datetime.now().replace(tzinfo=timezone.utc).timestamp()
@@ -159,6 +144,33 @@ def update_db_entry(submission_id, status):
     except Exception as e:
         logging.error(
             f"Couldn't update submission {submission_id} in database. {e}")
+        return False
+
+
+def mod_overriden(submission: praw.models.Submission) -> bool:
+    """Checks whether the submission's flair has been overriden by a mod"""
+    timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
+
+    database_status = check_status_in_db(submission.id)
+
+    if database_status is None:
+        return False
+
+    if database_status[0][1] == 'o':
+        return True
+    elif ':overriden:' in submission.link_flair_text:
+        db.custom_query(
+            f"REPLACE INTO posts VALUES ('{submission.id}', 'o', '{int(timestamp)}');")
+        return True
+    else:
+        return False
+
+
+def submitter_is_mod(submission: praw.models.Submission, mods: Tuple[praw.models.Redditor]) -> bool:
+    """Checks whether the author of submission is a sub moderator"""
+    if submission.author in mods:
+        return True
+    else:
         return False
 
 
@@ -188,7 +200,6 @@ def clean_db():
 
 
 def run():
-    print(reddit.user.me())
     """
     New submission: automatically flaired "unsolved"
     If "solved" comment from OP -> "solved"
@@ -210,8 +221,9 @@ def run():
         for submission in submission_stream:
             if submission is None or submission.author is None:
                 break
-            elif submission.author.name in sub_mods:
-                break
+            elif submitter_is_mod(submission, sub_mods):
+                db.custom_query(
+                    f"REPLACE INTO posts VALUES('{submission.id}', 'o', '{int(datetime.now().replace(tzinfo=timezone.utc).timestamp())}');")
             elif mod_overriden(submission):
                 break
             else:
