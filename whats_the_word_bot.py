@@ -76,7 +76,7 @@ def check_flair(submission, flair_text, flair_id=None):
             return True
         return False
     except Exception as e:
-        logging.error(f"Could not check submission {submission.id} flair. {e}")
+        # logging.error(f"Could not check submission {submission.id} flair. {e}")
         return False
 
 
@@ -124,9 +124,9 @@ def store_entry_in_db(submission, status=UNSOLVED_DB):
             logging.info(f"Added submission {submission.id} to database.")
             return True
         return False
-    except Exception:
+    except Exception as e:
         # most likely issue is not unique (submission is already logged in databaase); this is fine and intended
-        # logging.error(f"Couldn't store submission in database. {e}")
+        logging.error(f"Couldn't store submission in database. {e}")
         return False
 
 
@@ -153,6 +153,9 @@ def mod_overriden(submission: praw.models.Submission) -> bool:
     database_status = check_status_in_db(submission.id)
 
     if database_status is None:
+        return False
+
+    if submission.link_flair_text is None:
         return False
 
     if database_status[0][1] == 'o':
@@ -222,31 +225,36 @@ def run():
         for submission in submission_stream:
             if submission is None or submission.author is None:
                 break
-            elif submitter_is_mod(submission, sub_mods):
-                store_entry_in_db(submission, 'o')
-                break
-            elif submission.link_flair_text is None or mod_overriden(submission):
+            # elif submitter_is_mod(submission, sub_mods):
+                # store_entry_in_db(submission, 'o')
+                # break
+            elif mod_overriden(submission):
                 break
             else:
                 # only update flair if successfully added to database, to avoid out-of-sync issues
                 if not check_flair(submission=submission, flair_text=UNSOLVED_FLAIR_TEXT, flair_id=UNSOLVED_FLAIR_ID) and store_entry_in_db(submission=submission):
                     apply_flair(submission, text=UNSOLVED_FLAIR_TEXT,
                                 flair_id=UNSOLVED_FLAIR_ID)
+                    print(submission.title)
+
         # check if any new comments, update submissions accordingly
         comment_stream = subreddit.comments(limit=50)
         for comment in comment_stream:
-            if comment is None or comment.submission or (comment.author and comment.author.name == 'AutoModerator'):
+            if comment is None or comment.author is None or comment.submission.author is None or (comment.author.name == 'AutoModerator'):
+                print('comment is none')
                 break
 
             if mod_overriden(comment.submission):
+                print('mo passed')
                 break
 
-            print(comment.submission)
-            print(comment.submission.author)
             # if new comment by OP
-            if comment.author and comment.author.name == comment.submission.author.name:
+            if comment.author and comment.submission and comment.submission.author and comment.author.name == comment.submission.author.name:
+                print('ca exists')
                 # if OP's comment is "solved", flair submission as "solved"
                 if not already_solved(comment.submission) and solved_in_comment(comment):
+                    print(comment.body)
+
                     try:
                         # only update flair if successfully updated in database, to avoid out-of-sync issues
                         if update_db_entry(submission_id=comment.submission.id, status=SOLVED_DB):
@@ -265,6 +273,7 @@ def run():
                     except Exception as e:
                         logging.error(
                             f"Couldn't flair submission {comment.submission.id} as 'contested' following OP's new comment.")
+
             # otherwise, if new non-OP comment on an "unknown", "contested" or "unsolved" submission, flair submission as "contested"
             else:
                 try:
