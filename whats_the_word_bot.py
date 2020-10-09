@@ -75,7 +75,7 @@ def check_flair(submission, flair_text, flair_id=None):
         if submission.link_flair_text == flair_text or submission.link_flair_template_id == flair_id:
             return True
         return False
-    except Exception as e:
+    except Exception:
         # logging.error(f"Could not check submission {submission.id} flair. {e}")
         return False
 
@@ -126,7 +126,7 @@ def store_entry_in_db(submission, status=UNSOLVED_DB):
         return False
     except Exception as e:
         # most likely issue is not unique (submission is already logged in databaase); this is fine and intended
-        logging.error(f"Couldn't store submission in database. {e}")
+        # logging.error(f"Couldn't store submission in database. {e}")
         return False
 
 
@@ -225,9 +225,9 @@ def run():
         for submission in submission_stream:
             if submission is None or submission.author is None:
                 break
-            # elif submitter_is_mod(submission, sub_mods):
-                # store_entry_in_db(submission, 'o')
-                # break
+            elif submitter_is_mod(submission, sub_mods):
+                store_entry_in_db(submission, 'o')
+                break
             elif mod_overriden(submission):
                 break
             else:
@@ -235,25 +235,20 @@ def run():
                 if not check_flair(submission=submission, flair_text=UNSOLVED_FLAIR_TEXT, flair_id=UNSOLVED_FLAIR_ID) and store_entry_in_db(submission=submission):
                     apply_flair(submission, text=UNSOLVED_FLAIR_TEXT,
                                 flair_id=UNSOLVED_FLAIR_ID)
-                    print(submission.title)
 
         # check if any new comments, update submissions accordingly
         comment_stream = subreddit.comments(limit=50)
         for comment in comment_stream:
             if comment is None or comment.author is None or comment.submission.author is None or (comment.author.name == 'AutoModerator'):
-                print('comment is none')
                 break
 
             if mod_overriden(comment.submission):
-                print('mo passed')
                 break
 
             # if new comment by OP
             if comment.author and comment.submission and comment.submission.author and comment.author.name == comment.submission.author.name:
-                print('ca exists')
                 # if OP's comment is "solved", flair submission as "solved"
                 if not already_solved(comment.submission) and solved_in_comment(comment):
-                    print(comment.body)
 
                     try:
                         # only update flair if successfully updated in database, to avoid out-of-sync issues
