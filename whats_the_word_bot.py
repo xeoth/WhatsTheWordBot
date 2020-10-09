@@ -1,39 +1,41 @@
 #!/usr/bin/python3
 
-import os
+from os import getenv
 import praw
 import praw.models
 import logging
 import sql_library as sql
 from datetime import datetime, timezone
+from typing import Tuple
 from dotenv import load_dotenv
 load_dotenv()
 
 
-REDDIT_CLIENT_ID = os.environ.get('ID')
-REDDIT_CLIENT_SECRET = os.environ.get('SECRET')
-REDDIT_USERNAME = os.environ.get('USERNAME')
-REDDIT_PASSWORD = os.environ.get('PASSWORD')
-SUB_TO_MONITOR = os.environ.get('SUBREDDIT')
+REDDIT_CLIENT_ID = getenv('ID')
+REDDIT_CLIENT_SECRET = getenv('SECRET')
+REDDIT_USERNAME = getenv('REDDIT_USERNAME')
+REDDIT_PASSWORD = getenv('PASSWORD')
+SUB_TO_MONITOR = getenv('SUBREDDIT')
 
 SECONDS_UNTIL_ABANDONED_FROM_UNSOLVED = 86400  # 86400 = 24 hours in seconds
 SECONDS_UNTIL_UNKNOWN_FROM_CONTESTED = 172800  # 172800 = 48 hours in seconds
 
-UNSOLVED_FLAIR_TEXT = 'unsolved'
-UNSOLVED_FLAIR_ID = 'fb4b2e7e-94bd-11ea-8cfc-0efa6da03c0b'
-UNSOLVED_DB = 'u'
-ABANDONDED_FLAIR_TEXT = 'abandoned'
-ABANDONDED_FLAIR_ID = 'be422f68-9554-11ea-8bea-0e6f109dbcd3'
-ABANDONDED_DB = 'a'
-CONTESTED_FLAIR_TEXT = 'contested'
-CONTESTED_FLAIR_ID = '012e7792-94be-11ea-9937-0ed4891340c7'
-CONTESTED_DB = 'c'
-SOLVED_FLAIR_TEXT = 'solved'
-SOLVED_FLAIR_ID = 'f4b475ca-94bd-11ea-a3be-0e2ff1668461'
-SOLVED_DB = 's'
-UNKNOWN_FLAIR_TEXT = 'unknown'
-UNKNOWN_FLAIR_ID = ''
-UNKNOWN_DB = 'k'
+UNSOLVED_FLAIR_TEXT = getenv('UNSOLVED_FLAIR_TEXT')
+UNSOLVED_FLAIR_ID = getenv('UNSOLVED_FLAIR_ID')
+UNSOLVED_DB = getenv('UNSOLVED_DB')
+ABANDONDED_FLAIR_TEXT = getenv('ABANDONED_FLAIR_TEXT')
+ABANDONDED_FLAIR_ID = getenv('ABANDONED_FLAIR_ID')
+ABANDONDED_DB = getenv('ABANDONED_DB')
+CONTESTED_FLAIR_TEXT = getenv('CONTESTED_FLAIR_TEXT')
+CONTESTED_FLAIR_ID = getenv('CONTESTED_FLAIR_ID')
+CONTESTED_DB = getenv('CONTESTED_DB')
+SOLVED_FLAIR_TEXT = getenv('SOLVED_FLAIR_TEXT')
+SOLVED_FLAIR_ID = getenv('SOLVED_FLAIR_ID')
+SOLVED_DB = getenv('SOLVED_DB')
+UNKNOWN_FLAIR_TEXT = getenv('UNKNOWN_FLAIR_TEXT')
+UNKNOWN_FLAIR_ID = getenv('UNKNOWN_FLAIR_ID')
+UNKNOWN_DB = getenv('UNKNOWN_DB')
+OVERRIDEN_DB = getenv('OVERRIDEN_DB')
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(levelname)s - %(message)s")
@@ -42,6 +44,7 @@ db = sql.SQL(sql_type='SQLite', sqlite_file='whats_the_word.db')
 
 reddit = praw.Reddit(client_id=REDDIT_CLIENT_ID, client_secret=REDDIT_CLIENT_SECRET,
                      user_agent='WhatsTheWordBot (by u/grtgbln)', username=REDDIT_USERNAME, password=REDDIT_PASSWORD)
+
 if not reddit.read_only:
     logging.info("Connected and running.")
 
@@ -63,7 +66,8 @@ def check_status_in_db(submission_id):
         queries=[f"SELECT id, status FROM posts WHERE id == '{submission_id}'"])
     if results and len(results) > 0:
         return results
-    return None
+    else:
+        return None
 
 
 def check_flair(submission, flair_text, flair_id=None):
@@ -71,8 +75,8 @@ def check_flair(submission, flair_text, flair_id=None):
         if submission.link_flair_text == flair_text or submission.link_flair_template_id == flair_id:
             return True
         return False
-    except Exception as e:
-        logging.error(f"Could not check submission {submission.id} flair. {e}")
+    except Exception:
+        # logging.error(f"Could not check submission {submission.id} flair. {e}")
         return False
 
 
@@ -109,25 +113,21 @@ def already_contested(submission):
     return check_flair(submission=submission, flair_text=CONTESTED_FLAIR_TEXT, flair_id=CONTESTED_FLAIR_ID)
 
 
-def store_entry_in_db(submission):
+def store_entry_in_db(submission, status=UNSOLVED_DB):
     timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
     try:
         results = db.custom_query(
             queries=[
-                f"INSERT INTO posts (id, status, last_checked) VALUES ('{str(submission.id)}', '{UNSOLVED_DB}', {int(timestamp)})"],
+                f"INSERT INTO posts (id, status, last_checked) VALUES ('{str(submission.id)}', '{status}', {int(timestamp)})"],
             commit=True)
         if results and results > 0:
             logging.info(f"Added submission {submission.id} to database.")
             return True
         return False
-    except Exception:
+    except Exception as e:
         # most likely issue is not unique (submission is already logged in databaase); this is fine and intended
         # logging.error(f"Couldn't store submission in database. {e}")
         return False
-
-
-def mod_overriden(submission: praw.models.Submission):
-    return True if ':overriden:' in submission.link_flair_text else False
 
 
 def update_db_entry(submission_id, status):
@@ -145,6 +145,36 @@ def update_db_entry(submission_id, status):
     except Exception as e:
         logging.error(
             f"Couldn't update submission {submission_id} in database. {e}")
+        return False
+
+
+def mod_overriden(submission: praw.models.Submission) -> bool:
+    """Checks whether the submission's flair has been overriden by a mod"""
+    database_status = check_status_in_db(submission.id)
+
+    if database_status is None:
+        return False
+
+    if submission.link_flair_text is None:
+        return False
+
+    if database_status[0][1] == 'o':
+        return True
+    elif ':overriden:' in submission.link_flair_text:
+        store_entry_in_db(submission, 'o')
+        return True
+    else:
+        return False
+
+
+def submitter_is_mod(submission: praw.models.Submission, mods: Tuple[praw.models.Redditor]) -> bool:
+    """Checks whether the author of submission is a sub moderator"""
+    if submission is None:
+        return False
+
+    if submission.author in mods:
+        return True
+    else:
         return False
 
 
@@ -184,29 +214,42 @@ def run():
     """
     # clean_db()
     subreddit = reddit.subreddit(SUB_TO_MONITOR)
-    # comment_stream = subreddit.stream.comments(pause_after=-1)
-    # submission_stream = subreddit.stream.submissions(pause_after=-1)
+
+    # cache current subreddit mods not to look them up every time we want to check
+    sub_mods = tuple(moderator.name for moderator in subreddit.moderator())
+
     while True:
         # log new submissions to database, apply "unsolved" flair
         submission_stream = subreddit.new(
             limit=10)  # if you're getting more than 10 new submissions in two seconds, you have a problem
         for submission in submission_stream:
-            if submission is None:
+            if submission is None or submission.author is None:
+                break
+            elif submitter_is_mod(submission, sub_mods):
+                store_entry_in_db(submission, 'o')
+                break
+            elif mod_overriden(submission):
                 break
             else:
                 # only update flair if successfully added to database, to avoid out-of-sync issues
                 if not check_flair(submission=submission, flair_text=UNSOLVED_FLAIR_TEXT, flair_id=UNSOLVED_FLAIR_ID) and store_entry_in_db(submission=submission):
                     apply_flair(submission, text=UNSOLVED_FLAIR_TEXT,
                                 flair_id=UNSOLVED_FLAIR_ID)
+
         # check if any new comments, update submissions accordingly
         comment_stream = subreddit.comments(limit=50)
         for comment in comment_stream:
-            if comment is None or not comment.author or (comment.author and comment.author.name == 'AutoModerator'):
+            if comment is None or comment.author is None or comment.submission.author is None or (comment.author.name == 'AutoModerator'):
                 break
+
+            if mod_overriden(comment.submission):
+                break
+
             # if new comment by OP
-            if comment.author and comment.author.name == comment.submission.author.name:
+            if comment.author and comment.submission and comment.submission.author and comment.author.name == comment.submission.author.name:
                 # if OP's comment is "solved", flair submission as "solved"
                 if not already_solved(comment.submission) and solved_in_comment(comment):
+
                     try:
                         # only update flair if successfully updated in database, to avoid out-of-sync issues
                         if update_db_entry(submission_id=comment.submission.id, status=SOLVED_DB):
@@ -225,6 +268,7 @@ def run():
                     except Exception as e:
                         logging.error(
                             f"Couldn't flair submission {comment.submission.id} as 'contested' following OP's new comment.")
+
             # otherwise, if new non-OP comment on an "unknown", "contested" or "unsolved" submission, flair submission as "contested"
             else:
                 try:
@@ -256,6 +300,10 @@ def run():
                 # get submission object from id
                 submission = reddit.submission(id=entry[0])
                 # check comments one last time for potential solve
+
+                if mod_overriden(submission):
+                    continue
+
                 # only update flair if successfully updated in database, to avoid out-of-sync issues
                 if solved_in_comments(submission=submission) or check_flair(submission=submission,
                                                                             flair_text=SOLVED_FLAIR_TEXT,
@@ -279,6 +327,9 @@ def run():
                 # get submission object from id
                 submission = reddit.submission(id=entry[0])
                 # check comments one last time for potential solve
+                if mod_overriden(submission):
+                    break
+
                 # only update flair if successfully updated in database, to avoid out-of-sync issues
                 if solved_in_comments(submission=submission) or check_flair(submission=submission,
                                                                             flair_text=SOLVED_FLAIR_TEXT,
