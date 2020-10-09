@@ -66,7 +66,8 @@ def check_status_in_db(submission_id):
         queries=[f"SELECT id, status FROM posts WHERE id == '{submission_id}'"])
     if results and len(results) > 0:
         return results
-    return None
+    else:
+        return None
 
 
 def check_flair(submission, flair_text, flair_id=None):
@@ -112,12 +113,12 @@ def already_contested(submission):
     return check_flair(submission=submission, flair_text=CONTESTED_FLAIR_TEXT, flair_id=CONTESTED_FLAIR_ID)
 
 
-def store_entry_in_db(submission):
+def store_entry_in_db(submission, status=UNSOLVED_DB):
     timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
     try:
         results = db.custom_query(
             queries=[
-                f"INSERT INTO posts (id, status, last_checked) VALUES ('{str(submission.id)}', '{UNSOLVED_DB}', {int(timestamp)})"],
+                f"INSERT INTO posts (id, status, last_checked) VALUES ('{str(submission.id)}', '{status}', {int(timestamp)})"],
             commit=True)
         if results and results > 0:
             logging.info(f"Added submission {submission.id} to database.")
@@ -149,8 +150,6 @@ def update_db_entry(submission_id, status):
 
 def mod_overriden(submission: praw.models.Submission) -> bool:
     """Checks whether the submission's flair has been overriden by a mod"""
-    timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
-
     database_status = check_status_in_db(submission.id)
 
     if database_status is None:
@@ -159,8 +158,7 @@ def mod_overriden(submission: praw.models.Submission) -> bool:
     if database_status[0][1] == 'o':
         return True
     elif ':overriden:' in submission.link_flair_text:
-        db.custom_query(
-            f"REPLACE INTO posts VALUES ('{submission.id}', 'o', '{int(timestamp)}');")
+        store_entry_in_db(submission, 'o')
         return True
     else:
         return False
@@ -168,6 +166,9 @@ def mod_overriden(submission: praw.models.Submission) -> bool:
 
 def submitter_is_mod(submission: praw.models.Submission, mods: Tuple[praw.models.Redditor]) -> bool:
     """Checks whether the author of submission is a sub moderator"""
+    if submission is None:
+        return False
+
     if submission.author in mods:
         return True
     else:
@@ -222,9 +223,9 @@ def run():
             if submission is None or submission.author is None:
                 break
             elif submitter_is_mod(submission, sub_mods):
-                db.custom_query(
-                    f"REPLACE INTO posts VALUES('{submission.id}', 'o', '{int(datetime.now().replace(tzinfo=timezone.utc).timestamp())}');")
-            elif mod_overriden(submission):
+                store_entry_in_db(submission, 'o')
+                break
+            elif submission.link_flair_text is None or mod_overriden(submission):
                 break
             else:
                 # only update flair if successfully added to database, to avoid out-of-sync issues
@@ -234,12 +235,14 @@ def run():
         # check if any new comments, update submissions accordingly
         comment_stream = subreddit.comments(limit=50)
         for comment in comment_stream:
-            if comment is None or not comment.author or (comment.author and comment.author.name == 'AutoModerator'):
+            if comment is None or comment.submission or (comment.author and comment.author.name == 'AutoModerator'):
                 break
 
             if mod_overriden(comment.submission):
                 break
 
+            print(comment.submission)
+            print(comment.submission.author)
             # if new comment by OP
             if comment.author and comment.author.name == comment.submission.author.name:
                 # if OP's comment is "solved", flair submission as "solved"
