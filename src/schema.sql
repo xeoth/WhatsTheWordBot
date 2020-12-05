@@ -1,7 +1,6 @@
 /*
 r/WTW Bot's Database Schema
-Original work Copyright 2020 Nate Harris
-Modified work Copyright 2020 Xeoth
+Copyright 2020 Xeoth
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -22,17 +21,28 @@ Last modified by Xeoth on 04.12.2020
 */
 
 CREATE TABLE posts (
-  id VARCHAR(7) PRIMARY KEY,
+  id VARCHAR(7),
   status ENUM (
     'u', -- unsolved
     'a', -- abandoned
     'c', -- contested
     'k', -- unknown
-  ),
-  timestamp DATETIME
+    'o', -- overriden
+  ) NOT NULL,
+  timestamp DATETIME, -- so that we can wipe old records
+  PRIMARY KEY (id)
 );
 
 CREATE TABLE users (
-  name VARCHAR(20) PRIMARY KEY,
-  solved INT UNSIGNED,
+  name VARCHAR(20), -- username
+  points INT UNSIGNED, -- amount of points, not sure how they'll be determined yet
+  PRIMARY KEY (name)
+);
+
+-- this one will be used for storing members who subsribe to a thread
+CREATE TABLE subscribers (
+  name VARCHAR(20), -- subscriber username
+  id VARCHAR(7), -- post ID
+  internal_id INT UNSIGNED AUTO_INCREMENT, -- internal ID uniquely identifying every record and used for DB maintenance purposes. this should not be accessed from code too often, if at all.
+  PRIMARY KEY (internal_id)
 );
