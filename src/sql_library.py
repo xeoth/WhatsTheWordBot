@@ -1,3 +1,27 @@
+"""
+SQL Helper Library
+Original work Copyright 2020 Nate Harris
+Modified work Copyright 2020 Xeoth
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+Last modified by Xeoth on 04.12.2020
+                 ^--------^ please change when modifying to comply with the license
+"""
+
+
 import sqlite3
 # from pysqlcipher3 import dbapi2 as sqlcipher
 # import mysql.connector
@@ -31,13 +55,15 @@ class SQL:
                 raise Exception("Missing key to unlock encrypted database.")
         if self.SQL_TYPE in ['MySQL', 'MSSQL']:
             if not (self.SERVER_IP and self.DATABASE_NAME):
-                raise Exception("Please provide a server IP address and a database name.")
+                raise Exception(
+                    "Please provide a server IP address and a database name.")
         if self.SQL_TYPE == 'MySQL':
             if not (self.USERNAME and self.PASSWORD):
                 raise Exception("Please provide a username and password.")
         if self.SQL_TYPE == 'MSSQL':
             if not ((self.USERNAME and self.PASSWORD) or self.USE_ACTIVE_DIRECTORY):
-                raise Exception("Please use either username/password or Active Directory.")
+                raise Exception(
+                    "Please use either username/password or Active Directory.")
 
     def _get_connection(self):
         db = None

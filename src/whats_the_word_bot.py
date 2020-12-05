@@ -1,4 +1,26 @@
-#!/usr/bin/python3
+"""
+r/WhatsTheWord Bot
+Original work Copyright 2020 Nate Harris
+Modified work Copyright 2020 Xeoth
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation version 3.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+---
+
+Last modified by Xeoth on 04.12.2020
+                 ^--------^ please change when modifying to comply with the license
+"""
+
 
 from os import getenv
 import praw
@@ -124,7 +146,7 @@ def store_entry_in_db(submission, status=UNSOLVED_DB):
             logging.info(f"Added submission {submission.id} to database.")
             return True
         return False
-    except Exception as e:
+    except Exception:
         # most likely issue is not unique (submission is already logged in databaase); this is fine and intended
         # logging.error(f"Couldn't store submission in database. {e}")
         return False
