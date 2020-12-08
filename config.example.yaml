@@ -1,0 +1,16 @@
+subreddit:
+flairs:
+  unsolved:
+    text:
+    id:
+  contested:
+    text: ''
+    id: ''
+  solved:
+    text: ''
+    id: ''
+  unknown:
+    text: ''
+    id: ''
+unsolved_to_abandoned: 86400
+contested_to_unknown: 172800
