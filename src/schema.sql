@@ -23,19 +23,19 @@ Last modified by Xeoth on 04.12.2020
 CREATE TABLE posts (
   id VARCHAR(7),
   status ENUM (
-    'u', -- unsolved
-    'a', -- abandoned
-    'c', -- contested
-    'k', -- unknown
-    'o', -- overriden
+    'unsolved',
+    'abandoned',
+    'contested',
+    'unknown',
+    'overridden',
   ) NOT NULL,
   timestamp DATETIME, -- so that we can wipe old records
   PRIMARY KEY (id)
 );
 
 CREATE TABLE users (
-  name VARCHAR(20), -- username
-  points INT UNSIGNED, -- amount of points, not sure how they'll be determined yet
+  name VARCHAR(20),
+  points INT UNSIGNED,
   PRIMARY KEY (name)
 );
 
