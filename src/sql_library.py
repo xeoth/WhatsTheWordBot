@@ -1,5 +1,7 @@
 """
 SQL Helper Library
+
+
 Original work Copyright 2020 Nate Harris
 Modified work Copyright 2020 Xeoth
 
@@ -17,14 +19,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 04.12.2020
+Last modified by Xeoth on 12.12.2020
                  ^--------^ please change when modifying to comply with the license
 """
 
 
-import sqlite3
+# import sqlite3
 # from pysqlcipher3 import dbapi2 as sqlcipher
-# import mysql.connector
+import mysql.connector
 # import pyodbc
 
 
@@ -66,23 +68,10 @@ class SQL:
                     "Please use either username/password or Active Directory.")
 
     def _get_connection(self):
-        db = None
-        if self.SQL_TYPE == 'SQLite':
-            db = sqlite3.connect(self.SQLITE_FILE)
-        """
-        elif self.SQL_TYPE == 'SQLCipher':
-            db = sqlcipher.connect(self.SQLITE_FILE)
-            db.execute(f'pragma key="{self.KEY}"')
-        elif self.SQL_TYPE == 'MySQL':
-            db = mysql.connector.connect(user=self.USERNAME, password=self.PASSWORD, host=self.SERVER_IP,
-                                         database=self.DATABASE_NAME)
-        elif self.SQL_TYPE == 'MSSQL':
-            db = pyodbc.connect(f'DRIVER={{/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.5.so.2.1}};'
-                                f'SERVER={self.SERVER_IP};'
-                                f'DATABASE={self.DATABASE_NAME};'
-                                f'UID={self.USERNAME};'
-                                f'PWD={self.PASSWORD}')
-        """
+        db = mysql.connector.connect(user=self.USERNAME, password=self.PASSWORD, host=self.SERVER_IP,
+                                     database=self.DATABASE_NAME)
+        # db = sqlite3.connect(self.SQLITE_FILE)
+
         return db
 
     def use_sql_locally(self):

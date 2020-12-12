@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 04.12.2020
+Last modified by Xeoth on 12.12.2020
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -41,7 +41,6 @@ REDDIT_CLIENT_ID = getenv('ID')
 REDDIT_CLIENT_SECRET = getenv('SECRET')
 REDDIT_USERNAME = getenv('REDDIT_USERNAME')
 REDDIT_PASSWORD = getenv('PASSWORD')
-SUB_TO_MONITOR = getenv('SUBREDDIT')
 
 UNSOLVED_DB = 'unsolved'
 ABANDONDED_DB = 'abandoned'
@@ -53,7 +52,9 @@ OVERRIDEN_DB = 'overriden'
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(levelname)s - %(message)s")
 
-db = sql.SQL(sql_type='SQLite', sqlite_file='whats_the_word.db')
+
+db = sql.SQL(sql_type='MySQL', username=getenv(
+    'WTW_DB_USERNAME'), password=getenv('WTW_DB_PASSWORD'), server_ip=getenv('WTW_DB_IP'), database_name="WTWBot")
 
 reddit = praw.Reddit(client_id=REDDIT_CLIENT_ID, client_secret=REDDIT_CLIENT_SECRET,
                      user_agent='WhatsTheWordBot (by u/grtgbln)', username=REDDIT_USERNAME, password=REDDIT_PASSWORD)
@@ -226,7 +227,7 @@ def run():
     After 48 hours, "contested" -> "unknown" (check if solved first) (contested means someone has commented)
     """
     # clean_db()
-    subreddit = reddit.subreddit(SUB_TO_MONITOR)
+    subreddit = reddit.subreddit(config["subreddit"])
 
     # cache current subreddit mods not to look them up every time we want to check
     sub_mods = tuple(moderator.name for moderator in subreddit.moderator())
