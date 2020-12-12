@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 04.12.2020
+Last modified by Xeoth on 12.12.2020
                  ^--------^ please change when modifying to comply with the license
 */
 
@@ -27,8 +27,8 @@ CREATE TABLE posts (
     'abandoned',
     'contested',
     'unknown',
-    'overridden',
-  ) NOT NULL,
+    'overridden'
+  ),
   timestamp DATETIME, -- so that we can wipe old records
   PRIMARY KEY (id)
 );
