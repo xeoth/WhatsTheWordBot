@@ -28,21 +28,21 @@ CREATE TABLE posts (
     'contested',
     'unknown',
     'overridden'
-  ),
-  timestamp DATETIME, -- so that we can wipe old records
+  ) NOT NULL,
+  timestamp DATETIME NOT NULL, -- so that we can wipe old records
   PRIMARY KEY (id)
 );
 
 CREATE TABLE users (
   name VARCHAR(20),
-  points INT UNSIGNED,
+  points INT UNSIGNED NOT NULL,
   PRIMARY KEY (name)
 );
 
 -- this one will be used for storing members who subsribe to a thread
 CREATE TABLE subscribers (
-  name VARCHAR(20), -- subscriber username
-  id VARCHAR(7), -- post ID
+  name VARCHAR(20) NOT NULL, -- subscriber username
+  id VARCHAR(7) NOT NULL, -- post ID
   internal_id INT UNSIGNED AUTO_INCREMENT, -- internal ID uniquely identifying every record and used for DB maintenance purposes. this should not be accessed from code too often, if at all.
   PRIMARY KEY (internal_id)
 );
