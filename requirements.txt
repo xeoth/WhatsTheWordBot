@@ -2,4 +2,4 @@ praw
 prawcore
 python-dotenv
 pyyaml
-mysql-connector
+mysql-connector-python
