@@ -1,5 +1,5 @@
 """
-SQL Helper Library
+SQL Library
 
 
 Original work Copyright 2020 Nate Harris
