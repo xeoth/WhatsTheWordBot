@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 14.12.2020
+Last modified by Xeoth on 15.12.2020
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -59,3 +59,14 @@ class DatabaseHelper:
 
         # fetchone() returns a tuple with a string, or None if no results are found.
         return None if not results else results[0]
+
+    def add_subscriber(self, post_id: str, username: str) -> None:
+        """Adds a subscriber to a post and returns None"""
+        self.cur.execute(
+            'INSERT INTO subscribers (name, id) VALUES (?, ?);', (username, post_id))
+        self.cnx.commit()
+
+    def remove_all_subs(self, post_id: str) -> None:
+        """Removes all subscribers from a post and returns None"""
+        self.cur.execute("DELETE FROM subscribers WHERE id=?;", (post_id))
+        self.cnx.commit()
