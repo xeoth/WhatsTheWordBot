@@ -84,10 +84,10 @@ class DatabaseHelper:
         Points can be both positive or negative, but score stored in DB cannot be negative.
         Creates the user in DB if does not exist yet.
 
-        Arguments:
-            username {string} -- The username of a user we want to modify points for
+        Args:
+            username (str): The username of a user we want to modify points for
 
-            difference {integer} -- The amount of points we can add to the user (or subtract from the user, if negative.)
+            difference (int): The amount of points we can add to the user (or subtract from the user, if negative.)
 
         CAUTION! This does NOT set the points to the specified amount. Only either adds or subtracts from
         existing ones. To set points to a desired amount directly, use `set_points()`.
@@ -111,4 +111,20 @@ class DatabaseHelper:
 
         self.cur.execute(
             'REPLACE INTO users VALUES (?, ?);', (username, modified_points))
+        self.cnx.commit()
+
+    def set_points(self, username: str, amount: int):
+        """Sets user's points in the DB to a specified amount
+
+        Args:
+            username (str): Username of the user
+            amount (int): Desired amount of points
+        """
+
+        # since we're dealing with unsigned ints, we cannot have negatives
+        if amount < 0:
+            raise ValueError("Amount of points cannot be negative.")
+
+        self.cur.execute("REPLACE INTO users VALUES (?, ?);",
+                         (username, amount))
         self.cnx.commit()
