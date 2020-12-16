@@ -4,3 +4,4 @@ config.yaml
 .vscode/
 venv/
 __pycache__/
+.idea/
