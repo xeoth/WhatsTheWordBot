@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 15.12.2020
+Last modified by Xeoth on 16.12.2020
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -69,4 +69,46 @@ class DatabaseHelper:
     def remove_all_subs(self, post_id: str) -> None:
         """Removes all subscribers from a post and returns None"""
         self.cur.execute("DELETE FROM subscribers WHERE id=?;", (post_id))
+        self.cnx.commit()
+
+    def check_points(self, username: str) -> int:
+        """Queries the database for amount of points a specified user has and returns it"""
+        self.cur.execute('SELECT points FROM users WHERE name=?;', (username,))
+        results = self.cur.fetchone()
+
+        return 0 if not results else results[0]
+
+    def modify_points(self, username: str, difference: int):
+        """
+        Adds or removes specified amount of points from the user and returns None.
+        Points can be both positive or negative, but score stored in DB cannot be negative.
+        Creates the user in DB if does not exist yet.
+
+        Arguments:
+            username {string} -- The username of a user we want to modify points for
+
+            difference {integer} -- The amount of points we can add to the user (or subtract from the user, if negative.)
+
+        CAUTION! This does NOT set the points to the specified amount. Only either adds or subtracts from
+        existing ones. To set points to a desired amount directly, use `set_points()`.
+        """
+
+        # I probably could've done it with pure SQL, but it'd be overly complicated. Python it is!
+
+        # first, we need to get the current amount of points (or 0)
+        self.cur.execute(
+            'SELECT points FROM users WHERE name=?;', (username,))
+
+        # this returns either a tuple with the score or None
+        current_points = self.cur.fetchone()[0] or 0
+
+        # now that we have our points, we can add or subtract the desired amount
+        modified_points = current_points+difference
+
+        # we're using unsigned ints, so the number cannot be smaller than 0
+        if modified_points < 0:
+            modified_points = 0
+
+        self.cur.execute(
+            'REPLACE INTO users VALUES (?, ?);', (username, modified_points))
         self.cnx.commit()
