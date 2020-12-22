@@ -114,12 +114,7 @@ class DatabaseHelper:
         self.cnx.commit()
 
     def set_points(self, username: str, amount: int):
-        """Sets user's points in the DB to a specified amount
-
-        Args:
-            username (str): Username of the user
-            amount (int): Desired amount of points
-        """
+        """Sets user's points in the DB to a specified amount"""
 
         # since we're dealing with unsigned ints, we cannot have negatives
         if amount < 0:
