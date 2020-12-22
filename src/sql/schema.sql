@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 12.12.2020
+Last modified by Xeoth on 22.12.2020
                  ^--------^ please change when modifying to comply with the license
 */
 
@@ -29,7 +29,7 @@ CREATE TABLE posts (
     'unknown',
     'overridden'
   ) NOT NULL,
-  timestamp DATETIME NOT NULL, -- so that we can wipe old records
+  timestamp INT UNSIGNED NOT NULL, -- so that we can wipe old records
   PRIMARY KEY (id)
 );
 
