@@ -23,7 +23,7 @@ Last modified by Xeoth on 23.12.2020
 """
 
 import mysql.connector
-from typing import Tuple
+from typing import Tuple, Optional
 
 
 class DatabaseHelper:
@@ -53,7 +53,7 @@ class DatabaseHelper:
             'REPLACE INTO posts VALUES (?, ?, UNIX_TIMESTAMP());', (post_id, status))
         self._cnx.commit()
 
-    def check_post(self, post_id: str) -> str or None:
+    def check_post(self, post_id: str) -> Optional[str]:
         """Fetches a post's status from the database and returns it or None if no results are found."""
         self._cur.execute('SELECT status FROM posts WHERE id=?;', (post_id,))
         results = self._cur.fetchone()
@@ -80,7 +80,7 @@ class DatabaseHelper:
 
         return 0 if not results else results[0]
 
-    def modify_points(self, username: str, difference: int):
+    def modify_points(self, username: str, difference: int) -> None:
         """
         Adds or removes specified amount of points from the user and returns None.
         Points can be both positive or negative, but score stored in DB cannot be negative.
@@ -115,7 +115,7 @@ class DatabaseHelper:
             'REPLACE INTO users VALUES (?, ?);', (username, modified_points))
         self._cnx.commit()
 
-    def set_points(self, username: str, amount: int):
+    def set_points(self, username: str, amount: int) -> None:
         """Sets user's points in the DB to a specified amount"""
 
         # since we're dealing with unsigned ints, we cannot have negatives
@@ -125,3 +125,25 @@ class DatabaseHelper:
         self._cur.execute("REPLACE INTO users VALUES (?, ?);",
                           (username, amount))
         self._cnx.commit()
+
+    def get_old_posts(self, second_limit: int, status: str) -> Optional[Tuple[str, ...]]:
+        """Returns posts saved in the DB that are older than a specified amount of time and have the specified status.
+
+        Returns all old posts if `status` is not specified."""
+        if status:
+            self._cur.execute(
+                'SELECT id FROM posts WHERE timestamp <= ? AND status = ?;', (second_limit, status))
+        else:
+            self._cur.execute(
+                'SELECT id FROM posts WHERE timestamp <= ?;', (second_limit))
+
+        results = self._cur.fetchall()
+
+        if not results:
+            # means there are no old posts
+            return None
+        else:
+            # this query will return a list of tuples in which the only element will be post IDs, like [('ks72b',), ('jbdno3',)]
+            # this turns this hellspawned list-tuple-thing into a regular tuple with normal post IDs
+
+            return tuple([post[0] for post in results])
