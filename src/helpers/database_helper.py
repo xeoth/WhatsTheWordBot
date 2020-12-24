@@ -69,7 +69,7 @@ class DatabaseHelper:
 
     def remove_all_subs(self, post_id: str) -> None:
         """Removes all subscribers from a post and returns None"""
-        self._cur.execute("DELETE FROM subscribers WHERE id=?;", (post_id))
+        self._cur.execute("DELETE FROM subscribers WHERE id=?;", (post_id,))
         self._cnx.commit()
 
     def check_points(self, username: str) -> int:
@@ -126,7 +126,7 @@ class DatabaseHelper:
                           (username, amount))
         self._cnx.commit()
 
-    def get_old_posts(self, second_limit: int, status: str) -> Optional[Tuple[str, ...]]:
+    def get_old_posts(self, second_limit: float, status: str) -> Optional[Tuple[str, ...]]:
         """Returns posts saved in the DB that are older than a specified amount of time and have the specified status.
 
         Returns all old posts if `status` is not specified."""
@@ -135,7 +135,7 @@ class DatabaseHelper:
                 'SELECT id FROM posts WHERE timestamp <= ? AND status = ?;', (second_limit, status))
         else:
             self._cur.execute(
-                'SELECT id FROM posts WHERE timestamp <= ?;', (second_limit))
+                'SELECT id FROM posts WHERE timestamp <= ?;', (second_limit,))
 
         results = self._cur.fetchall()
 
@@ -143,7 +143,7 @@ class DatabaseHelper:
             # means there are no old posts
             return None
         else:
-            # this query will return a list of tuples in which the only element will be post IDs, like [('ks72b',), ('jbdno3',)]
+            # this query will return a list of tuples in which the only element will be post IDs, like [('ks72b',),
+            # ('jbdno3',)]
             # this turns this hellspawned list-tuple-thing into a regular tuple with normal post IDs
-
             return tuple([post[0] for post in results])
