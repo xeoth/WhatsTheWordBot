@@ -17,22 +17,21 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 12.12.2020
+Last modified by Xeoth on 24.12.2020
                  ^--------^ please change when modifying to comply with the license
 """
-
 
 from dotenv import load_dotenv
 from typing import Tuple
 from datetime import datetime, timezone
-import sql_library as sql
+from helpers import database_helper
 import yaml
 import logging
 import praw.models
 import praw
 from os import getenv
-load_dotenv()
 
+load_dotenv()
 
 with open('../config.yaml') as file:
     config = yaml.safe_load(file)
@@ -47,165 +46,23 @@ ABANDONDED_DB = 'abandoned'
 CONTESTED_DB = 'contested'
 SOLVED_DB = 'solved'
 UNKNOWN_DB = 'unknown'
-OVERRIDEN_DB = 'overriden'
+OVERRIDEN_DB = 'overridden'
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(levelname)s - %(message)s")
 
-
-db = sql.SQL(sql_type='MySQL', username=getenv(
-    'WTW_DB_USERNAME'), password=getenv('WTW_DB_PASSWORD'), server_ip=getenv('WTW_DB_IP'), database_name="WTWBot")
+db = database_helper.DatabaseHelper(
+    username=getenv('WTW_DB_USERNAME'),
+    password=getenv('WTW_DB_PASSWORD'),
+    hostname=getenv('WTW_DB_IP')
+)
 
 reddit = praw.Reddit(client_id=REDDIT_CLIENT_ID, client_secret=REDDIT_CLIENT_SECRET,
-                     user_agent='WhatsTheWordBot (by u/grtgbln)', username=REDDIT_USERNAME, password=REDDIT_PASSWORD)
+                     user_agent=f'{config["subreddit"]}\'s WhatsTheWordBot',
+                     username=REDDIT_USERNAME, password=REDDIT_PASSWORD)
 
 if not reddit.read_only:
     logging.info("Connected and running.")
-
-
-def get_posts_with_old_timestamps(status, second_limit=86400):
-    old_timestamp = datetime.now().replace(
-        tzinfo=timezone.utc).timestamp() - second_limit
-    # print(old_timestamp)
-    results = db.custom_query(
-        queries=[f"SELECT id, status FROM posts WHERE last_checked <= {int(old_timestamp)} AND status == '{status}'"])
-    # print(results)
-    if results and len(results) > 0:
-        return results
-    return []
-
-
-def check_status_in_db(submission_id):
-    results = db.custom_query(
-        queries=[f"SELECT id, status FROM posts WHERE id == '{submission_id}'"])
-    if results and len(results) > 0:
-        return results
-    else:
-        return None
-
-
-def check_flair(submission, flair_text, flair_id=None):
-    try:
-        if submission.link_flair_text == flair_text or submission.link_flair_template_id == flair_id:
-            return True
-        return False
-    except Exception:
-        # logging.error(f"Could not check submission {submission.id} flair. {e}")
-        return False
-
-
-def apply_flair(submission, text="", flair_id=None):
-    try:
-        submission.mod.flair(text=text, flair_template_id=flair_id)
-        logging.info(f"Marked submission {submission.id} as '{text}'")
-        return True
-    except Exception as e:
-        logging.error(f"Could not apply {text} flair. {e}")
-        return False
-
-
-def solved_in_comment(comment):
-    if "solved" in comment.body.lower():
-        return True
-    return False
-
-
-def solved_in_comments(submission):
-    # look for "solved" comment by OP
-    submission.comments.replace_more(limit=None)
-    for comment in submission.comments.list():
-        if comment.author.name == submission.author.name and solved_in_comment(comment):
-            return True
-    return False
-
-
-def already_solved(submission):
-    return check_flair(submission=submission, flair_text=config["flairs"]["solved"]["text"], flair_id=config["flairs"]["solved"]["id"])
-
-
-def already_contested(submission):
-    return check_flair(submission=submission, flair_text=config["flairs"]["contested"]["text"], flair_id=config["flairs"]["contested"]["id"])
-
-
-def store_entry_in_db(submission, status=UNSOLVED_DB):
-    timestamp = datetime.now().replace(tzinfo=timezone.utc).timestamp()
-    try:
-        results = db.custom_query(
-            queries=[
-                f"INSERT INTO posts (id, status, last_checked) VALUES ('{str(submission.id)}', '{status}', {int(timestamp)})"],
-            commit=True)
-        if results and results > 0:
-            logging.info(f"Added submission {submission.id} to database.")
-            return True
-        return False
-    except Exception:
-        # most likely issue is not unique (submission is already logged in databaase); this is fine and intended
-        # logging.error(f"Couldn't store submission in database. {e}")
-        return False
-
-
-def update_db_entry(submission_id, status):
-    try:
-        time_now = datetime.now().replace(tzinfo=timezone.utc).timestamp()
-        results = db.custom_query(
-            queries=[
-                f"UPDATE posts SET status = '{status}', last_checked = {int(time_now)} WHERE id = '{submission_id}'"],
-            commit=True)
-        if results and results > 0:
-            logging.info(
-                f"Updated submission {submission_id} to '{status}' in database.")
-            return True
-        return False
-    except Exception as e:
-        logging.error(
-            f"Couldn't update submission {submission_id} in database. {e}")
-        return False
-
-
-def mod_overriden(submission: praw.models.Submission) -> bool:
-    """Checks whether the submission's flair has been overriden by a mod"""
-    database_status = check_status_in_db(submission.id)
-
-    if database_status is None:
-        return False
-
-    if submission.link_flair_text is None:
-        return False
-
-    if database_status[0][1] == 'o':
-        return True
-    elif ':overriden:' in submission.link_flair_text:
-        store_entry_in_db(submission, 'o')
-        return True
-    else:
-        return False
-
-
-def submitter_is_mod(submission: praw.models.Submission, mods: Tuple[praw.models.Redditor]) -> bool:
-    """Checks whether the author of submission is a sub moderator"""
-    if submission is None:
-        return False
-
-    if submission.author in mods:
-        return True
-    else:
-        return False
-
-
-def delete_old_entry(submission_id):
-    try:
-        results = db.custom_query(
-            queries=[
-                f"DELETE FROM posts WHERE id = '{submission_id}'"],
-            commit=True)
-        if results and results > 0:
-            logging.info(f"Deleted submission {submission_id} from database.")
-            return True
-        return False
-    except Exception as e:
-        logging.error(
-            f"Couldn't delete submission {submission_id} in database. {e}")
-        return False
 
 
 def clean_db():
@@ -228,10 +85,10 @@ def run():
     """
     # clean_db()
     subreddit = reddit.subreddit(config["subreddit"])
-
+    
     # cache current subreddit mods not to look them up every time we want to check
     sub_mods = tuple(moderator.name for moderator in subreddit.moderator())
-
+    
     while True:
         # log new submissions to database, apply "unsolved" flair
         submission_stream = subreddit.new(
@@ -246,29 +103,33 @@ def run():
                 break
             else:
                 # only update flair if successfully added to database, to avoid out-of-sync issues
-                if not check_flair(submission=submission, flair_text=config["flairs"]["unsolved"]["text"], flair_id=config["flairs"]["unsolved"]["id"]) and store_entry_in_db(submission=submission):
+                if not check_flair(submission=submission, flair_text=config["flairs"]["unsolved"]["text"],
+                                   flair_id=config["flairs"]["unsolved"]["id"]) and store_entry_in_db(
+                    submission=submission):
                     apply_flair(submission, text=config["flairs"]["unsolved"]["text"],
                                 flair_id=config["flairs"]["unsolved"]["id"])
-
+        
         # check if any new comments, update submissions accordingly
         comment_stream = subreddit.comments(limit=50)
         for comment in comment_stream:
-            if comment is None or comment.author is None or comment.submission.author is None or (comment.author.name == 'AutoModerator'):
+            if comment is None or comment.author is None or comment.submission.author is None or (
+                    comment.author.name == 'AutoModerator'):
                 break
-
+            
             if mod_overriden(comment.submission):
                 break
-
+            
             # if new comment by OP
             if comment.author and comment.submission and comment.submission.author and comment.author.name == comment.submission.author.name:
                 # if OP's comment is "solved", flair submission as "solved"
                 if not already_solved(comment.submission) and solved_in_comment(comment):
-
+                    
                     try:
                         # only update flair if successfully updated in database, to avoid out-of-sync issues
                         if update_db_entry(submission_id=comment.submission.id, status=SOLVED_DB):
                             apply_flair(
-                                submission=comment.submission, text=config["flairs"]["solved"]["text"], flair_id=config["flairs"]["solved"]["id"])
+                                submission=comment.submission, text=config["flairs"]["solved"]["text"],
+                                flair_id=config["flairs"]["solved"]["id"])
                     except Exception as e:
                         logging.error(
                             f"Couldn't flair submission {comment.submission.id} as 'solved' following OP's new comment.")
@@ -282,18 +143,22 @@ def run():
                     except Exception as e:
                         logging.error(
                             f"Couldn't flair submission {comment.submission.id} as 'contested' following OP's new comment.")
-
+            
             # otherwise, if new non-OP comment on an "unknown", "contested" or "unsolved" submission, flair submission as "contested"
             else:
                 try:
-                    submission_entry_in_db = check_status_in_db(
-                        submission_id=comment.submission.id)
-                    if submission_entry_in_db and submission_entry_in_db[0][1] in [UNKNOWN_DB, CONTESTED_DB, UNSOLVED_DB]\
+                    submission_entry_in_db = db.check_post(
+                        comment.submission.id)
+                    if submission_entry_in_db and submission_entry_in_db[0][1] in [UNKNOWN_DB, CONTESTED_DB,
+                                                                                   UNSOLVED_DB] \
                             and not (
-                                check_flair(submission=comment.submission, flair_text=config["flairs"]["solved"]["text"], flair_id=config["flairs"]["solved"]["id"]) or
-                                check_flair(submission=comment.submission, flair_text=config["flairs"]["unsolved"]["text"], flair_id=config["flairs"]["unsolved"]["id"]) or
-                                check_flair(
-                                    submission=comment.submission, flair_text=config["flairs"]["contested"]["text"], flair_id=config["flairs"]["contested"]["id"])
+                            check_flair(submission=comment.submission, flair_text=config["flairs"]["solved"]["text"],
+                                        flair_id=config["flairs"]["solved"]["id"]) or
+                            check_flair(submission=comment.submission, flair_text=config["flairs"]["unsolved"]["text"],
+                                        flair_id=config["flairs"]["unsolved"]["id"]) or
+                            check_flair(
+                                submission=comment.submission, flair_text=config["flairs"]["contested"]["text"],
+                                flair_id=config["flairs"]["contested"]["id"])
                     ):
                         try:
                             # only update flair if successfully updated in database, to avoid out-of-sync issues
@@ -302,7 +167,8 @@ def run():
                                             flair_id=config["flairs"]["contested"]["id"])
                         except Exception as e:
                             logging.error(
-                                f"Couldn't flair submission {comment.submission.id} as 'contested' following a new non-OP comment.")
+                                f"Couldn't flair submission {comment.submission.id} as 'contested' following a new "
+                                f"non-OP comment.")
                 except Exception as e:
                     logging.error(
                         f"Couldn't grab submmision {comment.submission.id} status from database.")
@@ -314,21 +180,24 @@ def run():
                 # get submission object from id
                 submission = reddit.submission(id=entry[0])
                 # check comments one last time for potential solve
-
+                
                 if mod_overriden(submission):
                     continue
-
+                
                 # only update flair if successfully updated in database, to avoid out-of-sync issues
                 if solved_in_comments(submission=submission) or check_flair(submission=submission,
-                                                                            flair_text=config["flairs"]["solved"]["text"],
+                                                                            flair_text=config["flairs"]["solved"][
+                                                                                "text"],
                                                                             flair_id=config["flairs"]["solved"]["id"]):
                     if update_db_entry(submission_id=entry[0], status=SOLVED_DB):
                         apply_flair(
-                            submission=submission, text=config["flairs"]["solved"]["text"], flair_id=config["flairs"]["solved"]["id"])
+                            submission=submission, text=config["flairs"]["solved"]["text"],
+                            flair_id=config["flairs"]["solved"]["id"])
                 else:
                     if update_db_entry(submission_id=entry[0], status=ABANDONDED_DB):
                         apply_flair(
-                            submission=submission, text=config["flairs"]["abandoned"]["text"], flair_id=config["flairs"]["abandoned"]["id"])
+                            submission=submission, text=config["flairs"]["abandoned"]["text"],
+                            flair_id=config["flairs"]["abandoned"]["id"])
             except Exception as e:
                 logging.error(f"Couldn't check old submission {entry[0]}. {e}")
                 # if '404' in e:
@@ -343,18 +212,21 @@ def run():
                 # check comments one last time for potential solve
                 if mod_overriden(submission):
                     break
-
+                
                 # only update flair if successfully updated in database, to avoid out-of-sync issues
                 if solved_in_comments(submission=submission) or check_flair(submission=submission,
-                                                                            flair_text=config["flairs"]["solved"]["text"],
+                                                                            flair_text=config["flairs"]["solved"][
+                                                                                "text"],
                                                                             flair_id=config["flairs"]["solved"]["id"]):
                     if update_db_entry(submission_id=entry[0], status=SOLVED_DB):
                         apply_flair(
-                            submission=submission, text=config["flairs"]["solved"]["text"], flair_id=config["flairs"]["solved"]["id"])
+                            submission=submission, text=config["flairs"]["solved"]["text"],
+                            flair_id=config["flairs"]["solved"]["id"])
                 else:
                     if update_db_entry(submission_id=entry[0], status=UNKNOWN_DB):
                         apply_flair(
-                            submission=submission, text=config["flairs"]["solved"]["text"], flair_id=config["flairs"]["solved"]["id"])
+                            submission=submission, text=config["flairs"]["solved"]["text"],
+                            flair_id=config["flairs"]["solved"]["id"])
             except Exception as e:
                 logging.error(f"Couldn't check old submission {entry[0]}. {e}")
                 # if '404' in e:
