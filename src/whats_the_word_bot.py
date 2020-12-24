@@ -21,15 +21,16 @@ Last modified by Xeoth on 24.12.2020
                  ^--------^ please change when modifying to comply with the license
 """
 
-from dotenv import load_dotenv
-from typing import Tuple
-from datetime import datetime, timezone
-from helpers import database_helper
-import yaml
 import logging
-import praw.models
-import praw
 from os import getenv
+
+import praw
+from praw import models
+import yaml
+from dotenv import load_dotenv
+
+import database_helper
+import reddit_helper
 
 load_dotenv()
 
@@ -57,21 +58,17 @@ db = database_helper.DatabaseHelper(
     hostname=getenv('WTW_DB_IP')
 )
 
+rh = reddit_helper.RedditHelper(
+    db=db,
+    config=config
+)
+
 reddit = praw.Reddit(client_id=REDDIT_CLIENT_ID, client_secret=REDDIT_CLIENT_SECRET,
                      user_agent=f'{config["subreddit"]}\'s WhatsTheWordBot',
                      username=REDDIT_USERNAME, password=REDDIT_PASSWORD)
 
 if not reddit.read_only:
     logging.info("Connected and running.")
-
-
-def clean_db():
-    results = db.custom_query(queries=['DELETE FROM posts'], commit=True)
-    if results >= 0:
-        logging.info('Database cleared.')
-        return True
-    logging.error('Database could not be cleared.')
-    return False
 
 
 def run():
@@ -83,31 +80,30 @@ def run():
     After 24 hours, "unsolved" -> "abandoned" (check if solved first) (unsolved means no new comments; otherwise would be "contested")
     After 48 hours, "contested" -> "unknown" (check if solved first) (contested means someone has commented)
     """
-    # clean_db()
     subreddit = reddit.subreddit(config["subreddit"])
     
-    # cache current subreddit mods not to look them up every time we want to check
+    # store current subreddit mods not to look them up every time we want to check
     sub_mods = tuple(moderator.name for moderator in subreddit.moderator())
     
     while True:
         # log new submissions to database, apply "unsolved" flair
-        submission_stream = subreddit.new(
+        submission_stream: models.ListingGenerator = subreddit.new(
             limit=10)  # if you're getting more than 10 new submissions in two seconds, you have a problem
         for submission in submission_stream:
             if submission is None or submission.author is None:
                 break
-            elif submitter_is_mod(submission, sub_mods):
-                store_entry_in_db(submission, 'o')
+            elif rh.submitter_is_mod(submission, sub_mods):
+                db.save_post(submission, 'overridden')
                 break
-            elif mod_overriden(submission):
+            elif rh.mod_overriden(submission):
                 break
             else:
                 # only update flair if successfully added to database, to avoid out-of-sync issues
-                if not check_flair(submission=submission, flair_text=config["flairs"]["unsolved"]["text"],
-                                   flair_id=config["flairs"]["unsolved"]["id"]) and store_entry_in_db(
-                    submission=submission):
-                    apply_flair(submission, text=config["flairs"]["unsolved"]["text"],
-                                flair_id=config["flairs"]["unsolved"]["id"])
+                if not rh.check_flair(submission=submission, flair_text=config["flairs"]["unsolved"]["text"],
+                                      flair_id=config["flairs"]["unsolved"]["id"]):
+                    db.save_post(submission.id, 'unsolved')
+                    rh.apply_flair(submission, text=config["flairs"]["unsolved"]["text"],
+                                   flair_id=config["flairs"]["unsolved"]["id"])
         
         # check if any new comments, update submissions accordingly
         comment_stream = subreddit.comments(limit=50)
@@ -116,59 +112,61 @@ def run():
                     comment.author.name == 'AutoModerator'):
                 break
             
-            if mod_overriden(comment.submission):
+            if rh.mod_overriden(comment.submission):
                 break
             
-            # if new comment by OP
-            if comment.author and comment.submission and comment.submission.author and comment.author.name == comment.submission.author.name:
+            # on new comment by OP
+            if (
+                    comment.author and
+                    comment.submission and
+                    comment.submission.author and
+                    comment.author.name == comment.submission.author.name):
                 # if OP's comment is "solved", flair submission as "solved"
-                if not already_solved(comment.submission) and solved_in_comment(comment):
-                    
+                if not rh.already_solved(comment.submission) and rh.solved_in_comment(comment):
                     try:
-                        # only update flair if successfully updated in database, to avoid out-of-sync issues
-                        if update_db_entry(submission_id=comment.submission.id, status=SOLVED_DB):
-                            apply_flair(
-                                submission=comment.submission, text=config["flairs"]["solved"]["text"],
-                                flair_id=config["flairs"]["solved"]["id"])
-                    except Exception as e:
+                        db.save_post(comment.submission.id, SOLVED_DB)
+                        rh.apply_flair(
+                            submission=comment.submission, text=config["flairs"]["solved"]["text"],
+                            flair_id=config["flairs"]["solved"]["id"])
+                    except:
                         logging.error(
                             f"Couldn't flair submission {comment.submission.id} as 'solved' following OP's new comment.")
                 # if OP's comment is not "solved", flair submission as "contested"
-                elif not already_contested(comment.submission) and not already_solved(comment.submission):
+                elif not rh.already_contested(comment.submission) and not rh.already_solved(comment.submission):
                     try:
-                        # only update flair if successfully updated in database, to avoid out-of-sync issues
-                        if update_db_entry(submission_id=comment.submission.id, status=CONTESTED_DB):
-                            apply_flair(submission=comment.submission, text=config["flairs"]["contested"]["text"],
-                                        flair_id=config["flairs"]["contested"]["id"])
-                    except Exception as e:
+                        # if update_db_entry(submission_id=comment.submission.id, status=CONTESTED_DB):
+                        db.save_post(comment.submission.id, CONTESTED_DB)
+                        rh.apply_flair(submission=comment.submission, text=config["flairs"]["contested"]["text"],
+                                       flair_id=config["flairs"]["contested"]["id"])
+                    except:
                         logging.error(
                             f"Couldn't flair submission {comment.submission.id} as 'contested' following OP's new comment.")
             
-            # otherwise, if new non-OP comment on an "unknown", "contested" or "unsolved" submission, flair submission as "contested"
+            # otherwise, if new non-OP comment on an "unknown", "contested" or "unsolved" submission,
+            # flair submission as "contested"
             else:
                 try:
                     submission_entry_in_db = db.check_post(
                         comment.submission.id)
-                    if submission_entry_in_db and submission_entry_in_db[0][1] in [UNKNOWN_DB, CONTESTED_DB,
-                                                                                   UNSOLVED_DB] \
-                            and not (
-                            check_flair(submission=comment.submission, flair_text=config["flairs"]["solved"]["text"],
-                                        flair_id=config["flairs"]["solved"]["id"]) or
-                            check_flair(submission=comment.submission, flair_text=config["flairs"]["unsolved"]["text"],
-                                        flair_id=config["flairs"]["unsolved"]["id"]) or
-                            check_flair(
-                                submission=comment.submission, flair_text=config["flairs"]["contested"]["text"],
-                                flair_id=config["flairs"]["contested"]["id"])
+                    if (
+                            submission_entry_in_db in [UNKNOWN_DB, CONTESTED_DB, UNSOLVED_DB] and
+                            comment.submission.link_flair_template_id not in (
+                            config["flairs"]["solved"]["id"],
+                            config["flairs"]["unsolved"]["id"],
+                            config["flairs"]["contested"]["id"])
                     ):
                         try:
-                            # only update flair if successfully updated in database, to avoid out-of-sync issues
-                            if update_db_entry(submission_id=comment.submission.id, status=CONTESTED_DB):
-                                apply_flair(submission=comment.submission, text=config["flairs"]["contested"]["text"],
-                                            flair_id=config["flairs"]["contested"]["id"])
+                            db.save_post(comment.submission.id, CONTESTED_DB)
+                            rh.apply_flair(
+                                comment.submission,
+                                config["flairs"]["contested"]["text"],
+                                config["flairs"]["contested"]["id"],
+                            )
                         except Exception as e:
                             logging.error(
                                 f"Couldn't flair submission {comment.submission.id} as 'contested' following a new "
-                                f"non-OP comment.")
+                                f"non-OP comment."
+                            )
                 except Exception as e:
                     logging.error(
                         f"Couldn't grab submmision {comment.submission.id} status from database.")
