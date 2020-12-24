@@ -100,6 +100,6 @@ class RedditHelper:
             return False
     
     @staticmethod
-    def submitter_is_mod(submission: models.Submission, mods: Tuple[str]) -> bool:
+    def submitter_is_mod(submission: models.Submission, mods: Tuple[str, ...]) -> bool:
         """Checks whether the author of submission is a sub moderator"""
         return submission.author in mods
