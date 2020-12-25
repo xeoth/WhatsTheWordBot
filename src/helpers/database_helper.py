@@ -18,9 +18,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 23.12.2020
+Last modified by Xeoth on 25.12.2020
                  ^--------^ please change when modifying to comply with the license
 """
+
 
 import mysql.connector
 from typing import Tuple, Optional
@@ -85,14 +86,12 @@ class DatabaseHelper:
         Adds or removes specified amount of points from the user and returns None.
         Points can be both positive or negative, but score stored in DB cannot be negative.
         Creates the user in DB if does not exist yet.
+        
+        **Caution!** This does **not** set the points to the specified amount. Only either adds or subtracts from
+        existing ones. To set points to a desired amount directly, use ``set_points()``.
 
-        Args:
-            username (str): The username of a user we want to modify points for
-
-            difference (int): The amount of points we can add to the user (or subtract from the user, if negative.)
-
-        CAUTION! This does NOT set the points to the specified amount. Only either adds or subtracts from
-        existing ones. To set points to a desired amount directly, use `set_points()`.
+        :param username: Username of the user we want to modify points for
+        :param difference: The amount of points we can add to the user (or subtract from the user, if negative.)
         """
 
         # I probably could've done it with pure SQL, but it'd be overly complicated. Python it is!
@@ -128,8 +127,11 @@ class DatabaseHelper:
 
     def get_old_posts(self, second_limit: float, status: str) -> Optional[Tuple[str, ...]]:
         """Returns posts saved in the DB that are older than a specified amount of time and have the specified status.
-
-        Returns all old posts if `status` is not specified."""
+        
+        :param second_limit: Limit (in seconds) which the posts must surpass to be returned
+        :param status: Status of the post in the database (unsolved, overridden, solved, etc.)
+        :returns: If any posts with provided criteria exist, will return a tuple with their IDs
+        """
         if status:
             self._cur.execute(
                 'SELECT id FROM posts WHERE timestamp <= ? AND status = ?;', (second_limit, status))
