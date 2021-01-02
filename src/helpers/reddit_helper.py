@@ -2,7 +2,7 @@
 Helpers for interacting with Reddit's API
 
 Original work Copyright 2020 Nate Harris
-Modified work Copyright 2020 Xeoth
+Modified work Copyright 2021 Xeoth
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 25.12.2020
+Last modified by Xeoth on 2.1.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
