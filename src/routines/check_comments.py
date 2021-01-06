@@ -18,12 +18,13 @@
 #                   ^--------^ please change when modifying to comply with the license
 
 import logging
+import praw
 from praw import exceptions
 import helpers
 
 
-def check_comments(db: helpers.DatabaseHelper, rh: helpers.RedditHelper, config):
-    subreddit = config["subreddit"]
+def check_comments(reddit: praw.Reddit, db: helpers.DatabaseHelper, rh: helpers.RedditHelper, config):
+    subreddit = reddit.subreddit(config["subreddit"])
 
     # check if any new comments, update submissions accordingly
     comment_stream = subreddit.comments(limit=50)

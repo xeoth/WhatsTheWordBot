@@ -73,10 +73,10 @@ if __name__ == "__main__":
     )
     
     while True:
-        routines.check_comments(db, rh, config)
-        routines.check_contested(db, rh, config)
-        routines.check_new(db, rh, config)
-        routines.check_unsolved(db, rh, config)
+        routines.check_comments(reddit, db, rh, config)
+        routines.check_contested(reddit, db, rh, config)
+        routines.check_new(reddit, db, rh, config)
+        routines.check_unsolved(reddit, db, rh, config)
 
 # def run():
 #
