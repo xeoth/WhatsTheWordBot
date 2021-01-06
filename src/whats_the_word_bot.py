@@ -1,30 +1,29 @@
-"""
-r/WhatsTheWord Bot
-Original work Copyright 2020 Nate Harris
-Modified work Copyright 2021 Xeoth
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation version 3.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
----
-
-Last modified by Xeoth on 2.1.2021
-                 ^--------^ please change when modifying to comply with the license
-"""
+# r/WhatsTheWord bot
+# Original work Copyright 2020 Nate Harris
+# Modified work Copyright 2021 Xeoth
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation version 3.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
+# ---
+#
+# Last modified by Xeoth on 03.01.2021
+#                  ^--------^ please change when modifying to comply with the license
 
 import logging
 from os import getenv
+import concurrent.futures
 import praw
-from praw import models
+# from praw import models
 import yaml
 from dotenv import load_dotenv
 
@@ -41,13 +40,6 @@ REDDIT_CLIENT_ID = getenv('ID')
 REDDIT_CLIENT_SECRET = getenv('SECRET')
 REDDIT_USERNAME = getenv('REDDIT_USERNAME')
 REDDIT_PASSWORD = getenv('PASSWORD')
-
-UNSOLVED_DB = 'unsolved'
-ABANDONDED_DB = 'abandoned'
-CONTESTED_DB = 'contested'
-SOLVED_DB = 'solved'
-UNKNOWN_DB = 'unknown'
-OVERRIDEN_DB = 'overridden'
 
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s - %(levelname)s - %(message)s")
@@ -75,13 +67,16 @@ if __name__ == "__main__":
         hostname=getenv("WTW_DB_IP")
     )
     
-    # execute all routines
+    rh = helpers.RedditHelper(
+        db=db,
+        config=config
+    )
+    
     while True:
-        routines.check_new()
-        routines.check_unsolved()
-        routines.check_contested()
-        routines.check_comments()
-
+        routines.check_comments(db, rh, config)
+        routines.check_contested(db, rh, config)
+        routines.check_new(db, rh, config)
+        routines.check_unsolved(db, rh, config)
 
 # def run():
 #
@@ -109,75 +104,11 @@ if __name__ == "__main__":
 #                     db.save_post(submission.id, 'unsolved')
 #                     rh.apply_flair(submission, text=config["flairs"]["unsolved"]["text"],
 #                                    flair_id=config["flairs"]["unsolved"]["id"])
+
+    # # check old "unsolved" submissions and change to "abandoned"
+    # old_unsolved_submissions = get_posts_with_old_timestamps(status='u',
+    #                                                          second_limit=config["unsolved_to_abandoned"])
 #
-#         # check if any new comments, update submissions accordingly
-#         comment_stream = subreddit.comments(limit=50)
-#         for comment in comment_stream:
-#             if comment is None or comment.author is None or comment.submission.author is None or (
-#                     comment.author.name == 'AutoModerator'):
-#                 break
-#
-#             if rh.mod_overriden(comment.submission):
-#                 break
-#
-#             # on new comment by OP
-#             if (
-#                     comment.author and
-#                     comment.submission and
-#                     comment.submission.author and
-#                     comment.author.name == comment.submission.author.name):
-#                 # if OP's comment is "solved", flair submission as "solved"
-#                 if not rh.already_solved(comment.submission) and rh.solved_in_comment(comment):
-#                     try:
-#                         db.save_post(comment.submission.id, SOLVED_DB)
-#                         rh.apply_flair(
-#                             submission=comment.submission, text=config["flairs"]["solved"]["text"],
-#                             flair_id=config["flairs"]["solved"]["id"])
-#                     except:
-#                         logging.error(
-#                             f"Couldn't flair submission {comment.submission.id} as 'solved' following OP's new comment.")
-#                 # if OP's comment is not "solved", flair submission as "contested"
-#                 elif not rh.already_contested(comment.submission) and not rh.already_solved(comment.submission):
-#                     try:
-#                         # if update_db_entry(submission_id=comment.submission.id, status=CONTESTED_DB):
-#                         db.save_post(comment.submission.id, CONTESTED_DB)
-#                         rh.apply_flair(submission=comment.submission, text=config["flairs"]["contested"]["text"],
-#                                        flair_id=config["flairs"]["contested"]["id"])
-#                     except:
-#                         logging.error(
-#                             f"Couldn't flair submission {comment.submission.id} as 'contested' following OP's new comment.")
-#
-#             # otherwise, if new non-OP comment on an "unknown", "contested" or "unsolved" submission,
-#             # flair submission as "contested"
-#             else:
-#                 try:
-#                     submission_entry_in_db = db.check_post(
-#                         comment.submission.id)
-#                     if (
-#                             submission_entry_in_db in [UNKNOWN_DB, CONTESTED_DB, UNSOLVED_DB] and
-#                             comment.submission.link_flair_template_id not in (
-#                             config["flairs"]["solved"]["id"],
-#                             config["flairs"]["unsolved"]["id"],
-#                             config["flairs"]["contested"]["id"])
-#                     ):
-#                         try:
-#                             db.save_post(comment.submission.id, CONTESTED_DB)
-#                             rh.apply_flair(
-#                                 comment.submission,
-#                                 config["flairs"]["contested"]["text"],
-#                                 config["flairs"]["contested"]["id"],
-#                             )
-#                         except Exception as e:
-#                             logging.error(
-#                                 f"Couldn't flair submission {comment.submission.id} as 'contested' following a new "
-#                                 f"non-OP comment."
-#                             )
-#                 except Exception as e:
-#                     logging.error(
-#                         f"Couldn't grab submmision {comment.submission.id} status from database.")
-#         # check old "unsolved" submissions and change to "abandoned"
-#         old_unsolved_submissions = get_posts_with_old_timestamps(status='u',
-#                                                                  second_limit=config["unsolved_to_abandoned"])
 #         for entry in old_unsolved_submissions:
 #             try:
 #                 # get submission object from id
