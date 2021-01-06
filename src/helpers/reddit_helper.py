@@ -26,7 +26,7 @@ from datetime import datetime, timezone
 import logging
 from database_helper import DatabaseHelper
 from typing import Tuple, Optional
-from praw import models
+from praw import models, exceptions
 
 
 class RedditHelper:
@@ -67,7 +67,7 @@ class RedditHelper:
             submission.mod.flair(text=text, flair_template_id=flair_id)
             logging.info(f"Marked submission {submission.id} as '{text}'")
             return True
-        except Exception as e:
+        except exceptions.InvalidFlairTemplateID as e:
             logging.error(f"Could not apply {text} flair. {e}")
             return False
     
@@ -96,7 +96,7 @@ class RedditHelper:
         return self.check_flair(submission=submission, flair_text=self._config["flairs"]["contested"]["text"],
                                 flair_id=self._config["flairs"]["contested"]["id"])
     
-    def mod_overriden(self, submission: models.Submission) -> bool:
+    def mod_overridden(self, submission: models.Submission) -> bool:
         """Checks whether the submission's flair has been overriden by a mod and returns a boolean"""
         database_status = self._db.check_post(submission.id)
         
