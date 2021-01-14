@@ -16,14 +16,12 @@
 #
 # ---
 #
-# Last modified by Xeoth on 03.01.2021
+# Last modified by Xeoth on 15.01.2021
 #                  ^--------^ please change when modifying to comply with the license
 
 import logging
 from os import getenv
-import concurrent.futures
 import praw
-# from praw import models
 import yaml
 from dotenv import load_dotenv
 
@@ -72,12 +70,20 @@ if __name__ == "__main__":
         config=config
     )
     
-    while True:
-        routines.check_comments(reddit, db, rh, config)
-        routines.check_contested(reddit, db, rh, config)
-        routines.check_new(reddit, db, rh, config)
-        routines.check_unsolved(reddit, db, rh, config)
+    config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).subreddit.moderator()]
 
+    while True:
+        try:
+            routines.check_unsolved(reddit, db, rh, config)
+            routines.check_new(reddit, db, rh, config)
+            routines.check_contested(reddit, db, rh, config)
+            routines.check_comments(reddit, db, rh, config)
+        except KeyboardInterrupt:
+            logging.info("KeyboardInterrupt detected; quitting.")
+            exit(0)
+        except BaseException as e:
+            logging.error(f'Exception occured; {e}')
+    
 # def run():
 #
 #     subreddit = reddit.subreddit(config["subreddit"])
