@@ -14,8 +14,31 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 2.1.2021
+#  Last modified by Xeoth on 15.1.2021
 #                   ^--------^ please change when modifying to comply with the license
 
-def check_new():
-    pass
+import praw
+from praw import models
+import helpers
+
+
+def check_new(reddit: praw.Reddit, db: helpers.DatabaseHelper, rh: helpers.RedditHelper, config):
+    subreddit = reddit.subreddit(config["subreddit"])
+
+    # log new submissions to database, apply "unsolved" flair
+    submission_stream: models.ListingGenerator = subreddit.new(
+        limit=10)  # if you're getting more than 10 new submissions in two seconds, you have a problem
+    for submission in submission_stream:
+        if submission is None or submission.author is None:
+            break
+        elif rh.submitter_is_mod(submission, config["mods"]):
+            db.save_post(submission, 'overridden')
+            break
+        elif rh.mod_overridden(submission):
+            break
+        else:
+            if not rh.check_flair(submission=submission, flair_text=config["flairs"]["unsolved"]["text"],
+                                  flair_id=config["flairs"]["unsolved"]["id"]):
+                db.save_post(submission.id, 'unsolved')
+                rh.apply_flair(submission, text=config["flairs"]["unsolved"]["text"],
+                               flair_id=config["flairs"]["unsolved"]["id"])
