@@ -40,7 +40,7 @@ REDDIT_USERNAME = getenv('REDDIT_USERNAME')
 REDDIT_PASSWORD = getenv('PASSWORD')
 
 logging.basicConfig(level=logging.INFO,
-                    format="%(asctime)s - %(levelname)s - %(message)s")
+                    format="[%(asctime)s] %(module)s | %(levelname)s: %(message)s")
 
 reddit = praw.Reddit(client_id=REDDIT_CLIENT_ID, client_secret=REDDIT_CLIENT_SECRET,
                      user_agent=f"{config['subreddit']}'s WhatsTheWordBot",
