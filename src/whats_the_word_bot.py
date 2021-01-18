@@ -21,23 +21,23 @@
 
 import logging
 from os import getenv
+
 import praw
 import yaml
 from dotenv import load_dotenv
 
 import helpers
-
 import routines
 
 load_dotenv()
 
-with open('../config.yaml') as file:
+with open('config.yaml') as file:
     config = yaml.safe_load(file)
 
-REDDIT_CLIENT_ID = getenv('ID')
-REDDIT_CLIENT_SECRET = getenv('SECRET')
-REDDIT_USERNAME = getenv('REDDIT_USERNAME')
-REDDIT_PASSWORD = getenv('PASSWORD')
+REDDIT_CLIENT_ID = getenv('WTW_REDDIT_ID')
+REDDIT_CLIENT_SECRET = getenv('WTW_REDDIT_SECRET')
+REDDIT_USERNAME = getenv('WTW_REDDIT_USERNAME')
+REDDIT_PASSWORD = getenv('WTW_REDDIT_PASSWORD')
 
 logging.basicConfig(level=logging.INFO,
                     format="[%(asctime)s] %(module)s | %(levelname)s: %(message)s")
