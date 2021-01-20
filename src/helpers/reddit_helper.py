@@ -18,13 +18,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 2.1.2021
+Last modified by Xeoth on 20.1.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
 from datetime import datetime, timezone
 import logging
-from database_helper import DatabaseHelper
+from .database_helper import DatabaseHelper
 from typing import Tuple, Optional
 from praw import models, exceptions
 

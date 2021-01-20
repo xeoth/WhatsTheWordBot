@@ -14,18 +14,19 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 06.01.2021
+#  Last modified by Xeoth on 20.01.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import logging
 import praw
 from praw import exceptions
-import helpers
+from helpers.reddit_helper import RedditHelper
+from helpers.database_helper import DatabaseHelper
 
 
-def check_contested(reddit: praw.Reddit, db: helpers.DatabaseHelper, rh: helpers.RedditHelper, config):
+def check_contested(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
     old_contested_submissions = db.get_old_posts(status='contested', second_limit=config["contested_to_unknown"])
-
+    
     for submission_id in old_contested_submissions:
         try:
             # get submission object from id

@@ -14,18 +14,19 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 06.01.2021
+#  Last modified by Xeoth on 20.01.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import logging
 import praw
 from praw import exceptions
-import helpers
+from helpers.reddit_helper import RedditHelper
+from helpers.database_helper import DatabaseHelper
 
 
-def check_comments(reddit: praw.Reddit, db: helpers.DatabaseHelper, rh: helpers.RedditHelper, config):
+def check_comments(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
     subreddit = reddit.subreddit(config["subreddit"])
-
+    
     # check if any new comments, update submissions accordingly
     comment_stream = subreddit.comments(limit=50)
     for comment in comment_stream:

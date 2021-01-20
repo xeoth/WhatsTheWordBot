@@ -14,17 +14,18 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 15.1.2021
+#  Last modified by Xeoth on 20.1.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import praw
 from praw import models
-import helpers
+from helpers.reddit_helper import RedditHelper
+from helpers.database_helper import DatabaseHelper
 
 
-def check_new(reddit: praw.Reddit, db: helpers.DatabaseHelper, rh: helpers.RedditHelper, config):
+def check_new(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
     subreddit = reddit.subreddit(config["subreddit"])
-
+    
     # log new submissions to database, apply "unsolved" flair
     submission_stream: models.ListingGenerator = subreddit.new(
         limit=10)  # if you're getting more than 10 new submissions in two seconds, you have a problem

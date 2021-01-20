@@ -16,7 +16,7 @@
 #
 # ---
 #
-# Last modified by Xeoth on 15.01.2021
+# Last modified by Xeoth on 20.01.2021
 #                  ^--------^ please change when modifying to comply with the license
 
 import logging
@@ -26,8 +26,8 @@ import praw
 import yaml
 from dotenv import load_dotenv
 
-import helpers
-import routines
+from helpers import database_helper, reddit_helper
+from routines import check_new, check_comments, check_contested, check_unsolved
 
 load_dotenv()
 
@@ -58,26 +58,26 @@ if __name__ == "__main__":
     After 24 hours, "unsolved" -> "abandoned" (check if solved first) (unsolved means no new comments; otherwise would be "contested")
     After 48 hours, "contested" -> "unknown" (check if solved first) (contested means someone has commented)
     """
-    
-    db = helpers.DatabaseHelper(
+
+    db = database_helper.DatabaseHelper(
         username=getenv("WTW_DB_USERNAME"),
         password=getenv("WTW_DB_PASSWORD"),
         hostname=getenv("WTW_DB_IP")
     )
-    
-    rh = helpers.RedditHelper(
+
+    rh = reddit_helper.RedditHelper(
         db=db,
         config=config
     )
-    
-    config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).subreddit.moderator()]
+
+    config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).moderator()]
 
     while True:
         try:
-            routines.check_unsolved(reddit, db, rh, config)
-            routines.check_new(reddit, db, rh, config)
-            routines.check_contested(reddit, db, rh, config)
-            routines.check_comments(reddit, db, rh, config)
+            check_unsolved.check_unsolved(reddit, db, rh, config)
+            check_new.check_new(reddit, db, rh, config)
+            check_contested.check_contested(reddit, db, rh, config)
+            check_comments.check_comments(reddit, db, rh, config)
         except KeyboardInterrupt:
             logging.info("KeyboardInterrupt detected; quitting.")
             exit(0)

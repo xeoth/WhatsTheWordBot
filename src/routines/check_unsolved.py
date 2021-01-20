@@ -14,16 +14,17 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 15.1.2021
+#  Last modified by Xeoth on 20.1.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import praw
 from praw import models
-import helpers
 import logging
+from helpers.reddit_helper import RedditHelper
+from helpers.database_helper import DatabaseHelper
 
 
-def check_unsolved(reddit: praw.Reddit, db: helpers.DatabaseHelper, rh: helpers.RedditHelper, config):
+def check_unsolved(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
     old_unsolved_submissions = db.get_old_posts(status='unsolved',
                                                 second_limit=config["unsolved_to_abandoned"])
     
