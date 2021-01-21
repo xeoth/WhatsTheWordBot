@@ -33,7 +33,7 @@ def check_new(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config)
         if submission is None or submission.author is None:
             break
         elif rh.submitter_is_mod(submission, config["mods"]):
-            db.save_post(submission, 'overridden')
+            db.save_post(submission.id, 'overridden')
             break
         elif rh.mod_overridden(submission):
             break
