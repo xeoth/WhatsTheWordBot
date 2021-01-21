@@ -27,14 +27,17 @@ from helpers.database_helper import DatabaseHelper
 def check_contested(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
     logger = logging.getLogger(__name__)
     old_contested_submissions = db.get_old_posts(status='contested', second_limit=config["contested_to_unknown"])
-    
+
+    if old_contested_submissions is None:
+        return
+
     for submission_id in old_contested_submissions:
         try:
             # get submission object from id
             submission = reddit.submission(submission_id)
-            
+        
             # check comments one last time for potential solve
-            if rh.mod_overridden(submission_id):
+            if rh.mod_overridden(submission):
                 break
             elif rh.solved_in_comments(submission=submission) or \
                     rh.check_flair(submission=submission,
