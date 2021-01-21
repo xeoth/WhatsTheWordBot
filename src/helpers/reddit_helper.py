@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 20.1.2021
+Last modified by Xeoth on 21.1.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -27,6 +27,8 @@ import logging
 from .database_helper import DatabaseHelper
 from typing import Tuple, Optional
 from praw import models, exceptions
+
+logger = logging.getLogger(__name__)
 
 
 class RedditHelper:
@@ -57,7 +59,7 @@ class RedditHelper:
                 return True
             return False
         except Exception as e:
-            logging.error(f"Could not check {submission.id}'s' flair. {e}")
+            logger.error(f"Could not check {submission.id}'s' flair. {e}")
             return False
     
     @staticmethod
@@ -65,10 +67,10 @@ class RedditHelper:
         """Applies a specified flair to a submission and returns whether the flair assignment was successful"""
         try:
             submission.mod.flair(text=text, flair_template_id=flair_id)
-            logging.info(f"Marked submission {submission.id} as '{text}'")
+            logger.info(f"Marked submission {submission.id} as '{text}'")
             return True
         except exceptions.InvalidFlairTemplateID as e:
-            logging.error(f"Could not apply {text} flair. {e}")
+            logger.error(f"Could not apply {text} flair. {e}")
             return False
     
     @staticmethod

@@ -14,7 +14,7 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 20.01.2021
+#  Last modified by Xeoth on 21.01.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import logging
@@ -25,6 +25,7 @@ from helpers.database_helper import DatabaseHelper
 
 
 def check_comments(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
+    logger = logging.getLogger(__name__)
     subreddit = reddit.subreddit(config["subreddit"])
     
     # check if any new comments, update submissions accordingly
@@ -53,7 +54,7 @@ def check_comments(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
                         submission=comment.submission, text=config["flairs"]["solved"]["text"],
                         flair_id=config["flairs"]["solved"]["id"])
                 except exceptions.PRAWException:
-                    logging.error(
+                    logger.error(
                         f"Couldn't flair submission {comment.submission.id} as 'solved' following OP's new comment.")
             # if OP's comment is not "solved", flair submission as "contested"
             elif not rh.already_contested(comment.submission) and not rh.already_solved(comment.submission):

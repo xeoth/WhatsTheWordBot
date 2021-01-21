@@ -14,7 +14,7 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 20.01.2021
+#  Last modified by Xeoth on 21.01.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import logging
@@ -25,6 +25,7 @@ from helpers.database_helper import DatabaseHelper
 
 
 def check_contested(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
+    logger = logging.getLogger(__name__)
     old_contested_submissions = db.get_old_posts(status='contested', second_limit=config["contested_to_unknown"])
     
     for submission_id in old_contested_submissions:
@@ -49,4 +50,4 @@ def check_contested(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, c
                     submission=submission, text=config["flairs"]["solved"]["text"],
                     flair_id=config["flairs"]["solved"]["id"])
         except exceptions.PRAWException as e:
-            logging.error(f"Couldn't check old submission {submission_id}. {e}")
+            logger.error(f"Couldn't check old submission {submission_id}. {e}")

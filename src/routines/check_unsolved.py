@@ -14,19 +14,22 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 20.1.2021
+#  Last modified by Xeoth on 21.1.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import praw
-from praw import models
 import logging
 from helpers.reddit_helper import RedditHelper
 from helpers.database_helper import DatabaseHelper
 
 
 def check_unsolved(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
+    logger = logging.getLogger(__name__)
     old_unsolved_submissions = db.get_old_posts(status='unsolved',
                                                 second_limit=config["unsolved_to_abandoned"])
+    
+    if old_unsolved_submissions is None:
+        return
     
     for entry in old_unsolved_submissions:
         try:
@@ -52,4 +55,4 @@ def check_unsolved(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
                     submission=submission, text=config["flairs"]["abandoned"]["text"],
                     flair_id=config["flairs"]["abandoned"]["id"])
         except Exception as e:
-            logging.error(f"Couldn't check old submission {entry}. {e}")
+            logger.error(f"Couldn't check old submission {entry}. {e}")
