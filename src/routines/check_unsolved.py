@@ -36,15 +36,13 @@ def check_unsolved(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
             # get submission object from id
             submission = reddit.submission(id=entry)
             # check comments one last time for potential solve
-            
+
             if rh.mod_overridden(submission):
                 continue
-            
-            if rh.solved_in_comments(submission=submission) or rh.check_flair(submission=submission,
-                                                                              flair_text=config["flairs"]["solved"][
-                                                                                  "text"],
-                                                                              flair_id=config["flairs"]["solved"][
-                                                                                  "id"]):
+
+            if rh.solved_in_comments(submission=submission) or \
+                    rh.check_flair(submission=submission, flair_text=config["flairs"]["solved"]["text"],
+                                   flair_id=config["flairs"]["solved"]["id"]):
                 db.save_post(post_id=entry, status='solved')
                 rh.apply_flair(
                     submission=submission, text=config["flairs"]["solved"]["text"],

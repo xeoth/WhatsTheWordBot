@@ -67,7 +67,6 @@ class RedditHelper:
         """Applies a specified flair to a submission and returns whether the flair assignment was successful"""
         try:
             submission.mod.flair(text=text, flair_template_id=flair_id)
-            logger.info(f"Marked submission {submission.id} as '{text}'")
             return True
         except exceptions.InvalidFlairTemplateID as e:
             logger.error(f"Could not apply {text} flair. {e}")

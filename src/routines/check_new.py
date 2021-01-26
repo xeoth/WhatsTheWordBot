@@ -21,13 +21,16 @@ import praw
 from praw import models
 from helpers.reddit_helper import RedditHelper
 from helpers.database_helper import DatabaseHelper
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def check_new(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
     subreddit = reddit.subreddit(config["subreddit"])
     
     # log new submissions to database, apply "unsolved" flair
-    submission_stream: models.ListingGenerator = subreddit.new(
+    submission_stream = subreddit.new(
         limit=10)  # if you're getting more than 10 new submissions in two seconds, you have a problem
     for submission in submission_stream:
         if submission is None or submission.author is None:
@@ -37,9 +40,9 @@ def check_new(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config)
             break
         elif rh.mod_overridden(submission):
             break
-        else:
-            if not rh.check_flair(submission=submission, flair_text=config["flairs"]["unsolved"]["text"],
-                                  flair_id=config["flairs"]["unsolved"]["id"]):
-                db.save_post(submission.id, 'unsolved')
-                rh.apply_flair(submission, text=config["flairs"]["unsolved"]["text"],
-                               flair_id=config["flairs"]["unsolved"]["id"])
+        elif not rh.check_flair(submission=submission, flair_text=config["flairs"]["unsolved"]["text"],
+                                flair_id=config["flairs"]["unsolved"]["id"]):
+            db.save_post(submission.id, 'unsolved')
+            rh.apply_flair(submission, text=config["flairs"]["unsolved"]["text"],
+                           flair_id=config["flairs"]["unsolved"]["id"])
+            logger.info(f"Marked submission {submission.id} as unsolved.")

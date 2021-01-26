@@ -47,10 +47,14 @@ def check_contested(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, c
                 rh.apply_flair(
                     submission=submission, text=config["flairs"]["solved"]["text"],
                     flair_id=config["flairs"]["solved"]["id"])
+                logger.info(f"Marked submission {submission.id} as solved")
+
             else:
                 db.save_post(submission_id, 'unknown')
                 rh.apply_flair(
                     submission=submission, text=config["flairs"]["solved"]["text"],
                     flair_id=config["flairs"]["solved"]["id"])
+                logger.info(f"Marked submission {submission.id} as solved")
+
         except exceptions.PRAWException as e:
             logger.error(f"Couldn't check old submission {submission_id}. {e}")

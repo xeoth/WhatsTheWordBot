@@ -53,6 +53,8 @@ def check_comments(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
                     rh.apply_flair(
                         submission=comment.submission, text=config["flairs"]["solved"]["text"],
                         flair_id=config["flairs"]["solved"]["id"])
+                    logger.info(f"Marked submission {comment.submission.id} as solved")
+
                 except exceptions.PRAWException:
                     logger.error(
                         f"Couldn't flair submission {comment.submission.id} as 'solved' following OP's new comment.")
@@ -61,6 +63,7 @@ def check_comments(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
                 db.save_post(comment.submission.id, 'contested')
                 rh.apply_flair(submission=comment.submission, text=config["flairs"]["contested"]["text"],
                                flair_id=config["flairs"]["contested"]["id"])
+                logger.info(f"Marked submission {comment.submission.id} as contested")
 
         # otherwise, if new non-OP comment on an "unknown", "contested" or "unsolved" submission,
         # flair submission as "contested"
@@ -80,3 +83,4 @@ def check_comments(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
                     config["flairs"]["contested"]["text"],
                     config["flairs"]["contested"]["id"],
                 )
+                logger.info(f"Marked submission {comment.submission.id} as contested.")
