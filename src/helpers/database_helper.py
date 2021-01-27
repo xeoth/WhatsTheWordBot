@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 2.1.2021
+Last modified by Xeoth on 28.1.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -46,7 +46,7 @@ class DatabaseHelper:
 
     def save_post(self, post_id: str, status: str) -> None:
         """Adds or updates a post in the database and returns None"""
-        if status not in ('unsolved', 'abandoned', 'contested', 'unknown', 'overridden'):
+        if status not in ('unsolved', 'abandoned', 'contested', 'unknown', 'overridden', 'solved'):
             raise ValueError(
                 "Invalid status provided. Must be one of: unsolved, abandoned, contested, unknown, overridden")
 
