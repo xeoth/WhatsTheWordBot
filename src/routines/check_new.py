@@ -14,11 +14,10 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 20.1.2021
+#  Last modified by Xeoth on 28.1.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import praw
-from praw import models
 from helpers.reddit_helper import RedditHelper
 from helpers.database_helper import DatabaseHelper
 import logging
@@ -36,9 +35,13 @@ def check_new(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config)
         if submission is None or submission.author is None:
             break
         elif rh.submitter_is_mod(submission, config["mods"]):
-            db.save_post(submission.id, 'overridden')
+            if db.check_post(submission.id) != 'overridden':
+                logger.info(f"{submission.id} is a mod post, so marking as overridden.")
+                db.save_post(submission.id, 'overridden')
             break
         elif rh.mod_overridden(submission):
+            break
+        elif db.check_post(submission.id) is not None:
             break
         elif not rh.check_flair(submission=submission, flair_text=config["flairs"]["unsolved"]["text"],
                                 flair_id=config["flairs"]["unsolved"]["id"]):
