@@ -14,7 +14,7 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 21.1.2021
+#  Last modified by Xeoth on 28.1.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import praw
