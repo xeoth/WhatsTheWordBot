@@ -30,27 +30,26 @@ def check_unsolved(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
     
     if old_unsolved_submissions is None:
         return
-    
+
     for entry in old_unsolved_submissions:
-        try:
-            # get submission object from id
-            submission = reddit.submission(id=entry)
-            # check comments one last time for potential solve
-
-            if rh.mod_overridden(submission):
-                continue
-
-            if rh.solved_in_comments(submission=submission) or \
-                    rh.check_flair(submission=submission, flair_text=config["flairs"]["solved"]["text"],
-                                   flair_id=config["flairs"]["solved"]["id"]):
-                db.save_post(post_id=entry, status='solved')
-                rh.apply_flair(
-                    submission=submission, text=config["flairs"]["solved"]["text"],
-                    flair_id=config["flairs"]["solved"]["id"])
-            else:
-                db.save_post(post_id=entry, status='abandoned')
-                rh.apply_flair(
-                    submission=submission, text=config["flairs"]["abandoned"]["text"],
-                    flair_id=config["flairs"]["abandoned"]["id"])
-        except Exception as e:
-            logger.error(f"Couldn't check old submission {entry}. {e}")
+        # get submission object from id
+        submission = reddit.submission(id=entry)
+        # check comments one last time for potential solve
+    
+        if rh.mod_overridden(submission):
+            continue
+    
+        if rh.solved_in_comments(submission=submission) or \
+                rh.check_flair(submission=submission, flair_text=config["flairs"]["solved"]["text"],
+                               flair_id=config["flairs"]["solved"]["id"]):
+            db.save_post(post_id=entry, status='solved')
+            rh.apply_flair(
+                submission=submission, text=config["flairs"]["solved"]["text"],
+                flair_id=config["flairs"]["solved"]["id"])
+            logger.info(f"Marked submission {entry} as solved.")
+        else:
+            db.save_post(post_id=entry, status='abandoned')
+            rh.apply_flair(
+                submission=submission, text=config["flairs"]["abandoned"]["text"],
+                flair_id=config["flairs"]["abandoned"]["id"])
+            logger.info(f"Marked submission {entry} as abandoned.")
