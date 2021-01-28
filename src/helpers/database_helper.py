@@ -134,10 +134,10 @@ class DatabaseHelper:
         """
         if status:
             self._cur.execute(
-                'SELECT id FROM posts WHERE timestamp <= ? AND status = ?;', (second_limit, status))
+                'SELECT id FROM posts WHERE UNIX_TIMESTAMP()-timestamp >= ? AND status = ?;', (second_limit, status))
         else:
             self._cur.execute(
-                'SELECT id FROM posts WHERE timestamp <= ?;', (second_limit,))
+                'SELECT id FROM posts WHERE UNIX_TIMESTAMP()-timestamp >= ?;', (second_limit,))
 
         results = self._cur.fetchall()
 
