@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 21.1.2021
+Last modified by Xeoth on 28.1.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -54,11 +54,15 @@ class RedditHelper:
     @staticmethod
     def check_flair(submission: models.Submission, flair_text: str, flair_id=None) -> bool:
         """Checks whether the submission has a specified flair"""
+        # if it does not have these attributes, then it does not have a flair
+        if not hasattr(submission, 'link_flair_template_id') or not hasattr(submission, 'link_flair_text'):
+            return False
+    
         try:
             if submission.link_flair_text == flair_text or submission.link_flair_template_id == flair_id:
                 return True
             return False
-        except Exception as e:
+        except exceptions.PRAWException as e:
             logger.error(f"Could not check {submission.id}'s' flair. {e}")
             return False
     
@@ -115,8 +119,12 @@ class RedditHelper:
             return True
         else:
             return False
-    
+
     @staticmethod
     def submitter_is_mod(submission: models.Submission, mods: Tuple[str, ...]) -> bool:
-        """Checks whether the author of submission is a sub moderator"""
+        """
+        Checks whether the author of submission is a sub moderator
+        ** Do not use this! Just do `submission.author in config["mods"]`. Why did anyone ever write this!?
+        """
+        # TODO: Deprecate fully
         return submission.author in mods
