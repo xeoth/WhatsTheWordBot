@@ -1,3 +1,5 @@
 praw
 prawcore
 python-dotenv
+pyyaml
+mysql-connector-python
