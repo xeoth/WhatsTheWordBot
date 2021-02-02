@@ -14,7 +14,7 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 21.01.2021
+#  Last modified by Xeoth on 02.02.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import logging
@@ -39,10 +39,7 @@ def check_contested(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, c
             # check comments one last time for potential solve
             if rh.mod_overridden(submission):
                 break
-            elif rh.solved_in_comments(submission=submission) or \
-                    rh.check_flair(submission=submission,
-                                   flair_text=config["flairs"]["solved"]["text"],
-                                   flair_id=config["flairs"]["solved"]["id"]):
+            elif rh.solved_in_comments(submission=submission):
                 db.save_post(submission_id, 'solved')
                 rh.apply_flair(
                     submission=submission, text=config["flairs"]["solved"]["text"],
@@ -52,9 +49,9 @@ def check_contested(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, c
             else:
                 db.save_post(submission_id, 'unknown')
                 rh.apply_flair(
-                    submission=submission, text=config["flairs"]["solved"]["text"],
-                    flair_id=config["flairs"]["solved"]["id"])
-                logger.info(f"Marked submission {submission.id} as solved")
+                    submission=submission, text=config["flairs"]["unknown"]["text"],
+                    flair_id=config["flairs"]["unknown"]["id"])
+                logger.info(f"Marked submission {submission.id} as unknown.")
 
         except exceptions.PRAWException as e:
             logger.error(f"Couldn't check old submission {submission_id}. {e}")
