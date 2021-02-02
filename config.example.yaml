@@ -12,5 +12,8 @@ flairs:
   unknown:
     text: ''
     id: ''
+  abandoned:
+    text: ''
+    id: ''
 unsolved_to_abandoned: 86400
 contested_to_unknown: 172800
