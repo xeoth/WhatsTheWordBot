@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 28.1.2021
+Last modified by Xeoth on 03.02.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -119,12 +119,3 @@ class RedditHelper:
             return True
         else:
             return False
-
-    @staticmethod
-    def submitter_is_mod(submission: models.Submission, mods: Tuple[str, ...]) -> bool:
-        """
-        Checks whether the author of submission is a sub moderator
-        ** Do not use this! Just do `submission.author in config["mods"]`. Why did anyone ever write this!?
-        """
-        # TODO: Deprecate fully
-        return submission.author in mods
