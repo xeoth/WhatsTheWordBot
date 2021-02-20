@@ -14,7 +14,7 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 21.01.2021
+#  Last modified by Xeoth on 20.02.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import logging
@@ -49,6 +49,7 @@ def check_comments(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
             # if OP's comment is "solved", flair submission as "solved"
             if not rh.already_solved(comment.submission) and rh.solved_in_comment(comment):
                 try:
+                    # marking post as solved and changing the status in the DB
                     db.save_post(comment.submission.id, 'solved')
                     rh.apply_flair(
                         submission=comment.submission, text=config["flairs"]["solved"]["text"],
@@ -58,6 +59,32 @@ def check_comments(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
                 except exceptions.PRAWException:
                     logger.error(
                         f"Couldn't flair submission {comment.submission.id} as 'solved' following OP's new comment.")
+
+                # we don't want to assign points when OP replied to themselves (or their submission)
+                if not comment.parent_id.startswith('t3') and \
+                        (parent := reddit.comment(comment.parent_id[3:])).author.name != comment.submission.author.name:
+                    # adding a point to solver's balance
+                    points = db.modify_points(parent.author.name, 1)
+    
+                    # modifying the flair of the person who solved the query
+                    flair_index = 0  # index of the flair template ID on the template array
+    
+                    # if the user has more points than the highest bound, just apply the highest flair
+                    if points >= (flair_bounds := config["user_flairs"]["bounds"])[-1]:
+                        flair_index = len(flair_bounds)
+    
+                    for index, bound in enumerate(flair_bounds):
+                        # if user's points are smaller than the bound, then user qualifies for the flair
+                        if points < bound:
+                            flair_index = index
+                            break
+    
+                    reddit.subreddit(config["subreddit"]).flair.set(
+                        redditor=parent.author.name,
+                        text=config["user_flairs"]["text"].format(points),
+                        flair_template_id=config["user_flairs"][flair_index]
+                    )
+
             # if OP's comment is not "solved", flair submission as "contested"
             elif not rh.already_contested(comment.submission) and not rh.already_solved(comment.submission):
                 db.save_post(comment.submission.id, 'contested')
