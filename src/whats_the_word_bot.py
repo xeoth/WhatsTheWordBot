@@ -27,7 +27,7 @@ import yaml
 from dotenv import load_dotenv
 
 from helpers import database_helper, reddit_helper
-from routines import check_new, check_comments, check_contested, check_unsolved
+from routines import check_new, check_comments, check_contested, check_unsolved, check_messages
 
 load_dotenv()
 
@@ -78,6 +78,7 @@ if __name__ == "__main__":
             check_new.check_new(reddit, db, rh, config)
             check_contested.check_contested(reddit, db, rh, config)
             check_comments.check_comments(reddit, db, rh, config)
+            check_messages.check_messages(reddit, db, rh, config)
         except KeyboardInterrupt:
             logging.info("KeyboardInterrupt detected; quitting.")
             exit(0)
