@@ -16,7 +16,7 @@
 #
 # ---
 #
-# Last modified by Xeoth on 20.01.2021
+# Last modified by Xeoth on 21.02.2021
 #                  ^--------^ please change when modifying to comply with the license
 
 import logging
@@ -70,7 +70,8 @@ if __name__ == "__main__":
         config=config
     )
 
-    config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).moderator()]
+    # config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).moderator()]
+    config["mods"] = ("nil",)
 
     while True:
         try:
@@ -82,5 +83,5 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             logging.info("KeyboardInterrupt detected; quitting.")
             exit(0)
-        except BaseException as e:
-            logging.error(f'Exception occured; {e}')
+        # except BaseException as e:
+        #     logging.error(f'Exception occured; {e}')
