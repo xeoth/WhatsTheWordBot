@@ -14,8 +14,9 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 03.02.2021
+#  Last modified by Xeoth on 21.02.2021
 #                   ^--------^ please change when modifying to comply with the license
+from os import getenv
 
 import praw
 from helpers.reddit_helper import RedditHelper
@@ -49,3 +50,9 @@ def check_new(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config)
             rh.apply_flair(submission, text=config["flairs"]["unsolved"]["text"],
                            flair_id=config["flairs"]["unsolved"]["id"])
             logger.info(f"Marked submission {submission.id} as unsolved.")
+
+        # adding the subscription prompt comment
+        message = config["constants"]["sub_comment"]
+        reply = submission.reply(message.format(getenv('WTW_USERNAME'), submission.id))
+        reply.mod.distinguish(how='yes', sticky=True)
+        reply.mod.lock()
