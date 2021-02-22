@@ -83,7 +83,7 @@ class DatabaseHelper:
     def check_subscription(self, post_id: str, username: str) -> bool:
         """Checks if the specified user is subscribed to a post."""
         self._cur.execute("SELECT 1 FROM subscribers WHERE name=? AND id=?;", (username, post_id))
-        return False if not self._cur.fetchone() else True
+        return not self._cur.fetchone()
 
     def check_points(self, username: str) -> int:
         """Queries the database for amount of points a specified user has and returns it"""

@@ -21,7 +21,7 @@
 
 import logging
 from os import getenv
-from sys import exit
+import sys
 
 import praw
 import yaml
@@ -81,4 +81,4 @@ if __name__ == "__main__":
             check_messages.check_messages(reddit, db, rh, config)
         except KeyboardInterrupt:
             logging.info("KeyboardInterrupt detected; quitting.")
-            exit(0)
+            sys.exit(0)
