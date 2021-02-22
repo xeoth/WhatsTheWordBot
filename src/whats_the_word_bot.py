@@ -16,18 +16,19 @@
 #
 # ---
 #
-# Last modified by Xeoth on 20.01.2021
+# Last modified by Xeoth on 22.02.2021
 #                  ^--------^ please change when modifying to comply with the license
 
 import logging
 from os import getenv
+from sys import exit
 
 import praw
 import yaml
 from dotenv import load_dotenv
 
 from helpers import database_helper, reddit_helper
-from routines import check_new, check_comments, check_contested, check_unsolved
+from routines import check_new, check_comments, check_contested, check_unsolved, check_messages
 
 load_dotenv()
 
@@ -50,27 +51,26 @@ if not reddit.read_only:
     logging.info("Connected and running.")
 
 if __name__ == "__main__":
-    """
-    New submission: automatically flaired "unsolved"
-    If "solved" comment from OP -> "solved"
-    If non-"solved" comment from OP -> "contested"
-    If new comment from non-OP -> "unsolved"/"contested"/"unknown" -> "contested" (ignore "abandoned")
-    After 24 hours, "unsolved" -> "abandoned" (check if solved first) (unsolved means no new comments; otherwise would be "contested")
-    After 48 hours, "contested" -> "unknown" (check if solved first) (contested means someone has commented)
-    """
-
+    # New submission: automatically flaired "unsolved"
+    # If "solved" comment from OP -> "solved"
+    # If non-"solved" comment from OP -> "contested"
+    # If new comment from non-OP -> "unsolved"/"contested"/"unknown" -> "contested" (ignore "abandoned")
+    # After 24 hours, "unsolved" -> "abandoned" (check if solved first) (unsolved means no new comments; otherwise would be "contested")
+    # After 48 hours, "contested" -> "unknown" (check if solved first) (contested means someone has commented)
+    
     db = database_helper.DatabaseHelper(
         username=getenv("WTW_DB_USERNAME"),
         password=getenv("WTW_DB_PASSWORD"),
         hostname=getenv("WTW_DB_IP")
     )
-
+    
     rh = reddit_helper.RedditHelper(
         db=db,
         config=config
     )
 
-    config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).moderator()]
+    # config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).moderator()]
+    config["mods"] = ("nil",)
 
     while True:
         try:
@@ -78,8 +78,7 @@ if __name__ == "__main__":
             check_new.check_new(reddit, db, rh, config)
             check_contested.check_contested(reddit, db, rh, config)
             check_comments.check_comments(reddit, db, rh, config)
+            check_messages.check_messages(reddit, db, rh, config)
         except KeyboardInterrupt:
             logging.info("KeyboardInterrupt detected; quitting.")
             exit(0)
-        except BaseException as e:
-            logging.error(f'Exception occured; {e}')

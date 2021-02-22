@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 28.1.2021
+Last modified by Xeoth on 22.02.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -73,15 +73,27 @@ class DatabaseHelper:
         self._cur.execute("DELETE FROM subscribers WHERE id=?;", (post_id,))
         self._cnx.commit()
 
+    def get_subscribers(self, post_id: str) -> Optional[Tuple[str]]:
+        """Returns all subscribers for a specified posts in a tuple"""
+        self._cur.execute("SELECT name FROM subscribers WHERE id=?;", (post_id,))
+        results = self._cur.fetchall()
+    
+        return None if not results else tuple(result[0] for result in results)
+
+    def check_subscription(self, post_id: str, username: str) -> bool:
+        """Checks if the specified user is subscribed to a post."""
+        self._cur.execute("SELECT 1 FROM subscribers WHERE name=? AND id=?;", (username, post_id))
+        return False if not self._cur.fetchone() else True
+
     def check_points(self, username: str) -> int:
         """Queries the database for amount of points a specified user has and returns it"""
         self._cur.execute(
             'SELECT points FROM users WHERE name=?;', (username,))
         results = self._cur.fetchone()
-
+    
         return 0 if not results else results[0]
 
-    def modify_points(self, username: str, difference: int) -> None:
+    def modify_points(self, username: str, difference: int) -> int:
         """
         Adds or removes specified amount of points from the user and returns None.
         Points can be both positive or negative, but score stored in DB cannot be negative.
@@ -92,6 +104,7 @@ class DatabaseHelper:
 
         :param username: Username of the user we want to modify points for
         :param difference: The amount of points we can add to the user (or subtract from the user, if negative.)
+        :returns Returns the new amount of user's points
         """
 
         # I probably could've done it with pure SQL, but it'd be overly complicated. Python it is!
@@ -101,18 +114,19 @@ class DatabaseHelper:
             'SELECT points FROM users WHERE name=?;', (username,))
 
         # this returns either a tuple with the score or None
-        current_points = self._cur.fetchone()[0] or 0
-
+        current_points = 0 if (points := self._cur.fetchone()) is None else points[0]
+    
         # now that we have our points, we can add or subtract the desired amount
-        modified_points = current_points+difference
-
+        modified_points = current_points + difference
+    
         # we're using unsigned ints, so the number cannot be smaller than 0
-        if modified_points < 0:
-            modified_points = 0
-
+        modified_points = max(modified_points, 0)
+    
         self._cur.execute(
             'REPLACE INTO users VALUES (?, ?);', (username, modified_points))
         self._cnx.commit()
+    
+        return modified_points
 
     def set_points(self, username: str, amount: int) -> None:
         """Sets user's points in the DB to a specified amount"""

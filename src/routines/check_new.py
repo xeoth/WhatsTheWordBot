@@ -14,8 +14,9 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 28.1.2021
+#  Last modified by Xeoth on 22.02.2021
 #                   ^--------^ please change when modifying to comply with the license
+from os import getenv
 
 import praw
 from helpers.reddit_helper import RedditHelper
@@ -34,7 +35,7 @@ def check_new(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config)
     for submission in submission_stream:
         if submission is None or submission.author is None:
             break
-        elif rh.submitter_is_mod(submission, config["mods"]):
+        elif submission.author in config["mods"]:
             if db.check_post(submission.id) != 'overridden':
                 logger.info(f"{submission.id} is a mod post, so marking as overridden.")
                 db.save_post(submission.id, 'overridden')
@@ -49,3 +50,9 @@ def check_new(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config)
             rh.apply_flair(submission, text=config["flairs"]["unsolved"]["text"],
                            flair_id=config["flairs"]["unsolved"]["id"])
             logger.info(f"Marked submission {submission.id} as unsolved.")
+
+        # adding the subscription prompt comment
+        message = config["constants"]["sub_comment"]
+        reply = submission.reply(message.format(getenv('WTW_REDDIT_USERNAME'), submission.id))
+        reply.mod.distinguish(how='yes', sticky=True)
+        reply.mod.lock()
