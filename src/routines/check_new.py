@@ -14,7 +14,7 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 21.02.2021
+#  Last modified by Xeoth on 22.02.2021
 #                   ^--------^ please change when modifying to comply with the license
 from os import getenv
 
@@ -53,6 +53,6 @@ def check_new(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config)
 
         # adding the subscription prompt comment
         message = config["constants"]["sub_comment"]
-        reply = submission.reply(message.format(getenv('WTW_USERNAME'), submission.id))
+        reply = submission.reply(message.format(getenv('WTW_REDDIT_USERNAME'), submission.id))
         reply.mod.distinguish(how='yes', sticky=True)
         reply.mod.lock()

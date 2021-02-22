@@ -14,7 +14,7 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 21.02.2021
+#  Last modified by Xeoth on 22.02.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import praw
@@ -30,12 +30,15 @@ id_regex = re.compile(r"^[a-z0-9]{6}$")
 
 def check_messages(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, config):
     # processing each message and adding subscriptions
-    for message in reddit.inbox.stream():
+    for message in reddit.inbox.messages(limit=25):
         # we only have one DM action
         if message.subject != "subscribe":
             continue
         # checking whether the ID makes sense
         elif not id_regex.match(message.body.strip()):
+            continue
+        elif db.check_subscription(message.body, message.author.name):
+            # user already subscribed
             continue
         
         author = message.author.name
@@ -45,6 +48,8 @@ def check_messages(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
         try:
             if submission.subreddit.display_name != config["subreddit"]:
                 # wrong subreddit, continue
+                continue
+            elif rh.already_solved(submission):
                 continue
         except exceptions.NotFound:
             # post doesn't exist, continue

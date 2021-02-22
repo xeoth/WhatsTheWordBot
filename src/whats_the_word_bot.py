@@ -16,11 +16,12 @@
 #
 # ---
 #
-# Last modified by Xeoth on 21.02.2021
+# Last modified by Xeoth on 22.02.2021
 #                  ^--------^ please change when modifying to comply with the license
 
 import logging
 from os import getenv
+from sys import exit
 
 import praw
 import yaml
@@ -50,21 +51,19 @@ if not reddit.read_only:
     logging.info("Connected and running.")
 
 if __name__ == "__main__":
-    """
-    New submission: automatically flaired "unsolved"
-    If "solved" comment from OP -> "solved"
-    If non-"solved" comment from OP -> "contested"
-    If new comment from non-OP -> "unsolved"/"contested"/"unknown" -> "contested" (ignore "abandoned")
-    After 24 hours, "unsolved" -> "abandoned" (check if solved first) (unsolved means no new comments; otherwise would be "contested")
-    After 48 hours, "contested" -> "unknown" (check if solved first) (contested means someone has commented)
-    """
-
+    # New submission: automatically flaired "unsolved"
+    # If "solved" comment from OP -> "solved"
+    # If non-"solved" comment from OP -> "contested"
+    # If new comment from non-OP -> "unsolved"/"contested"/"unknown" -> "contested" (ignore "abandoned")
+    # After 24 hours, "unsolved" -> "abandoned" (check if solved first) (unsolved means no new comments; otherwise would be "contested")
+    # After 48 hours, "contested" -> "unknown" (check if solved first) (contested means someone has commented)
+    
     db = database_helper.DatabaseHelper(
         username=getenv("WTW_DB_USERNAME"),
         password=getenv("WTW_DB_PASSWORD"),
         hostname=getenv("WTW_DB_IP")
     )
-
+    
     rh = reddit_helper.RedditHelper(
         db=db,
         config=config
@@ -83,5 +82,3 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             logging.info("KeyboardInterrupt detected; quitting.")
             exit(0)
-        # except BaseException as e:
-        #     logging.error(f'Exception occured; {e}')

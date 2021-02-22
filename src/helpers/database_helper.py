@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 20.02.2021
+Last modified by Xeoth on 22.02.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -73,12 +73,24 @@ class DatabaseHelper:
         self._cur.execute("DELETE FROM subscribers WHERE id=?;", (post_id,))
         self._cnx.commit()
 
+    def get_subscribers(self, post_id: str) -> Optional[Tuple[str]]:
+        """Returns all subscribers for a specified posts in a tuple"""
+        self._cur.execute("SELECT name FROM subscribers WHERE id=?;", (post_id,))
+        results = self._cur.fetchall()
+    
+        return None if not results else tuple(result[0] for result in results)
+
+    def check_subscription(self, post_id: str, username: str) -> bool:
+        """Checks if the specified user is subscribed to a post."""
+        self._cur.execute("SELECT 1 FROM subscribers WHERE name=? AND id=?;", (username, post_id))
+        return False if not self._cur.fetchone() else True
+
     def check_points(self, username: str) -> int:
         """Queries the database for amount of points a specified user has and returns it"""
         self._cur.execute(
             'SELECT points FROM users WHERE name=?;', (username,))
         results = self._cur.fetchone()
-
+    
         return 0 if not results else results[0]
 
     def modify_points(self, username: str, difference: int) -> int:
@@ -108,8 +120,7 @@ class DatabaseHelper:
         modified_points = current_points + difference
     
         # we're using unsigned ints, so the number cannot be smaller than 0
-        if modified_points < 0:
-            modified_points = 0
+        modified_points = max(modified_points, 0)
     
         self._cur.execute(
             'REPLACE INTO users VALUES (?, ?);', (username, modified_points))
