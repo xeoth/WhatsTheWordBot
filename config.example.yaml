@@ -17,3 +17,21 @@ flairs:
     id: ''
 unsolved_to_abandoned: 86400
 contested_to_unknown: 172800
+user_flairs:
+  text: ":karma: Points: {}"
+  0: ""
+  1: ""
+  2: ""
+  3: ""
+  4: ""
+  5: ""
+  bounds: [ 5, 10, 25, 50, 100 ]
+constants:
+  sub_comment: "[Click this link](https://reddit.com/message/compose?to={}&subject=subscribe&message={}) to be notified when this post is done."
+  solved_message: "The {} post you subscribed to, [{}]({}), was just solved."
+  footer: >
+
+
+    ---
+
+    *This is an automated message, replies will not be received by bot owners. Feedback? [Message us!](/message/compose?to=/r/u_{}&subject=Feedback%20about%20your%20bot)*
