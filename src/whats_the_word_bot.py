@@ -47,6 +47,15 @@ reddit = praw.Reddit(client_id=REDDIT_CLIENT_ID, client_secret=REDDIT_CLIENT_SEC
                      user_agent=f"{config['subreddit']}'s WhatsTheWordBot",
                      username=REDDIT_USERNAME, password=REDDIT_PASSWORD)
 
+if sentry_key := getenv('SENTRY_KEY'):
+    # we only want to use sentry if we have a key
+    import sentry_sdk
+    
+    sentry_sdk.init(
+        sentry_key,
+        traces_sample_rate=0.7
+    )
+
 if not reddit.read_only:
     logging.info("Connected and running.")
 
@@ -68,9 +77,8 @@ if __name__ == "__main__":
         db=db,
         config=config
     )
-
-    # config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).moderator()]
-    config["mods"] = ("nil",)
+    
+    config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).moderator()]
 
     while True:
         try:
