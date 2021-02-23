@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 03.02.2021
+Last modified by Xeoth on 23.02.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -26,17 +26,18 @@ from datetime import datetime, timezone
 import logging
 from .database_helper import DatabaseHelper
 from typing import Tuple, Optional
-from praw import models, exceptions
+from praw import models, exceptions, Reddit
 
 logger = logging.getLogger(__name__)
 
 
 class RedditHelper:
     """Utility class made for working with posts"""
-    
-    def __init__(self, db: DatabaseHelper, config):
+
+    def __init__(self, db: DatabaseHelper, config, reddit: Reddit):
         self._db = db
         self._config = config
+        self._reddit = reddit
     
     def get_posts_with_old_timestamps(self, status=None, second_limit=86400) -> Optional[Tuple[str, ...]]:
         """
@@ -109,13 +110,33 @@ class RedditHelper:
             return False
         elif database_status == 'overridden':
             return True
-        
+
         if submission.link_flair_text is None:
             return False
-        
+
         # made a typo earlier, leaving the 'overriden' for backwards compatibility
         elif any(i in submission.link_flair_text for i in (':overriden:', ':overridden')):
             self._db.save_post(submission.id, 'overridden')
             return True
         else:
             return False
+
+    def notify_subscribers(self, post_id: str, sub_name: str, title: str, permalink: str):
+        """Notifes post's subscribers that the post was solved."""
+        message = self._config["constants"]["solved_message"].format(
+            f"r/{sub_name}",
+            title,
+            permalink
+        ) + self._config["constants"]["footer"].format(self._reddit.user.me().name)
+    
+        for subscriber in self._db.get_subscribers(post_id):
+            if not subscriber:
+                # if no subs, finish
+                break
+        
+            self._reddit.redditor(subscriber).message(
+                subject="The post you subscribed to was solved!",
+                message=message
+            )
+    
+        self._db.remove_all_subs(post_id)

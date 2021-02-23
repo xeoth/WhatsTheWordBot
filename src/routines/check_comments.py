@@ -14,7 +14,7 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 22.02.2021
+#  Last modified by Xeoth on 23.02.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import logging
@@ -58,23 +58,18 @@ def check_comments(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
                 except exceptions.PRAWException:
                     logger.error(
                         f"Couldn't flair submission {comment.submission.id} as 'solved' following OP's new comment.")
-    
-                # messaging post's subscribers
-                message = config["constants"]["solved_message"].format(
-                    f"r/{comment.subreddit.display_name}",
-                    comment.submission.title,
-                    comment.submission.permalink
-                ) + config["constants"]["footer"].format(reddit.user.me().name)
-    
-                for subscriber in db.get_subscribers(comment.submission.id):
-                    reddit.redditor(subscriber).message(
-                        subject="The post you subscribed to was solved!",
-                        message=message
-                    )
-    
+
+                # notifying the subscribers about the solve
+                rh.notify_subscribers(
+                    post_id=comment.submission.id,
+                    sub_name=comment.subreddit.display_name,
+                    title=comment.submission.title,
+                    permalink=comment.submission.permalink
+                )
+
                 # no need to store them any further
                 db.remove_all_subs(comment.submission.id)
-    
+
                 # we don't want to assign points when OP replied to themselves (or their submission)
                 if not comment.parent_id.startswith('t3') and \
                         (parent := reddit.comment(comment.parent_id[3:])).author.name != comment.submission.author.name:

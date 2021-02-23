@@ -75,7 +75,8 @@ if __name__ == "__main__":
     
     rh = reddit_helper.RedditHelper(
         db=db,
-        config=config
+        config=config,
+        reddit=reddit
     )
     
     config["mods"] = [mod.name for mod in reddit.subreddit(config["subreddit"]).moderator()]

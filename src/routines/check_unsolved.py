@@ -14,7 +14,7 @@
 #
 #  ---
 #
-#  Last modified by Xeoth on 28.1.2021
+#  Last modified by Xeoth on 23.02.2021
 #                   ^--------^ please change when modifying to comply with the license
 
 import praw
@@ -38,7 +38,7 @@ def check_unsolved(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
     
         if rh.mod_overridden(submission):
             continue
-    
+
         if rh.solved_in_comments(submission=submission) or \
                 rh.check_flair(submission=submission, flair_text=config["flairs"]["solved"]["text"],
                                flair_id=config["flairs"]["solved"]["id"]):
@@ -47,6 +47,16 @@ def check_unsolved(reddit: praw.Reddit, db: DatabaseHelper, rh: RedditHelper, co
                 submission=submission, text=config["flairs"]["solved"]["text"],
                 flair_id=config["flairs"]["solved"]["id"])
             logger.info(f"Marked submission {entry} as solved.")
+    
+            rh.notify_subscribers(
+                title=submission.title,
+                sub_name=submission.subreddit.display_name,
+                post_id=submission.id,
+                permalink=submission.permalink
+            )
+    
+            db.remove_all_subs(submission.id)
+
         else:
             db.save_post(post_id=entry, status='abandoned')
             rh.apply_flair(
