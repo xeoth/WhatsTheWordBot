@@ -130,12 +130,13 @@ class RedditHelper:
             title,
             permalink
         ) + self._config["constants"]["footer"].format(self._reddit.user.me().name)
+
+        subscribers = self._db.get_subscribers(post_id)
     
-        for subscriber in self._db.get_subscribers(post_id):
-            if not subscriber:
-                # if no subs, finish
-                break
-        
+        if not subscribers:
+            return
+
+        for subscriber in subscribers:
             self._reddit.redditor(subscriber).message(
                 subject="The post you subscribed to was solved!",
                 message=message
