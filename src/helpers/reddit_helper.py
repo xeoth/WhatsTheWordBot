@@ -88,6 +88,8 @@ class RedditHelper:
         submission.comments.replace_more(limit=None)
         # noinspection PyTypeChecker
         for comment in submission.comments.list():
+            if not comment or not comment.author or not submission or not submission.author:
+                continue
             if comment.author.name == submission.author.name and self.solved_in_comment(comment):
                 return True
         return False
