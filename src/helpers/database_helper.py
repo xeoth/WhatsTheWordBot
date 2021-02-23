@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 22.02.2021
+Last modified by Xeoth on 23.02.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -83,7 +83,7 @@ class DatabaseHelper:
     def check_subscription(self, post_id: str, username: str) -> bool:
         """Checks if the specified user is subscribed to a post."""
         self._cur.execute("SELECT 1 FROM subscribers WHERE name=? AND id=?;", (username, post_id))
-        return not self._cur.fetchone()
+        return bool(self._cur.fetchone())
 
     def check_points(self, username: str) -> int:
         """Queries the database for amount of points a specified user has and returns it"""
