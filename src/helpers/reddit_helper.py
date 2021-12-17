@@ -79,8 +79,8 @@ class RedditHelper:
     
     @staticmethod
     def solved_in_comment(comment: models.Comment) -> bool:
-        """Checks whether 'solved' is in the comment"""
-        return "solved" in comment.body.lower()
+        """Checks whether '!solved' is in the comment"""
+        return "!solved" in comment.body.lower()
     
     def solved_in_comments(self, submission: models.Submission) -> bool:
         """Looks for comments containing 'solved' made by OP"""
