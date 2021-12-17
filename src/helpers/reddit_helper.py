@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 23.02.2021
+Last modified by Xeoth on 18.12.2021
                  ^--------^ please change when modifying to comply with the license
 """
 
@@ -41,7 +41,7 @@ class RedditHelper:
     
     def get_posts_with_old_timestamps(self, status=None, second_limit=86400) -> Optional[Tuple[str, ...]]:
         """
-        Fetches posts before made before a set amount of seconds and returns them
+        Fetches posts made before a set amount of seconds and returns them
         
         :param status: If provided, will return posts only with this status
         :param second_limit: How old the posts have to be to get listed
@@ -105,7 +105,7 @@ class RedditHelper:
                                 flair_id=self._config["flairs"]["contested"]["id"])
     
     def mod_overridden(self, submission: models.Submission) -> bool:
-        """Checks whether the submission's flair has been overriden by a mod and returns a boolean"""
+        """Checks whether the submission's flair has been overwritten by a mod and returns a boolean"""
         database_status = self._db.check_post(submission.id)
         
         if database_status is None:
@@ -124,7 +124,7 @@ class RedditHelper:
             return False
 
     def notify_subscribers(self, post_id: str, sub_name: str, title: str, permalink: str):
-        """Notifes post's subscribers that the post was solved."""
+        """Notifies post's subscribers that the post was solved."""
         message = self._config["constants"]["solved_message"].format(
             f"r/{sub_name}",
             title,

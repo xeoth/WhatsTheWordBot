@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 ---
 
-Last modified by Xeoth on 21.1.2021
+Last modified by Xeoth on 18.12.2021
                  ^--------^ please change when modifying to comply with the license
 */
 
@@ -40,7 +40,7 @@ CREATE TABLE users (
   PRIMARY KEY (name)
 );
 
--- this one will be used for storing members who subsribe to a thread
+-- this one will be used for storing members who subscribe to a thread
 CREATE TABLE subscribers (
   name VARCHAR(20) NOT NULL, -- subscriber username
   id VARCHAR(7) NOT NULL, -- post ID
